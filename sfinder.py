@@ -1,9 +1,9 @@
 """Sfinder module, a wrapper for working with knewjade's solution-finder program."""
 
-import re, subprocess
+import re, subprocess, tet
 from lxml import html, etree
 from os import getcwd
-from tet import TetSetup
+from tet import TetSolution
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -16,8 +16,11 @@ class SFinder:
         else:
             self.working_dir = "%s\\%s" % (getcwd(), SFINDER_VER)
 
-    def setup(self, field=None, pieces=None, print_results=False, parent=None):
-        """Run sfinder setup command, return setups"""
+    def setup(self, field=None, pieces=None, print_results=False):
+        """Run sfinder setup command, return setups.
+        
+        Returns a list of TetSolutions.
+        """
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if field:
             args.extend(["-t", field])
@@ -42,16 +45,15 @@ class SFinder:
                 solutions = []
                 for section in sections:
                     fumens = []
-                    fpieces = []
                     for child in section:
                         if child.tag == "p":
                             etree.strip_tags(child[0], "br")
-                            field = child[0].text
+                            field_str = child[0].text
                         if child.tag == "div":
-                            fumens.append(child[0].attrib["href"].split(
-                                "fumen.zui.jp/?")[1])
-                            fpieces.append(child[0].text)
-                    solutions.append(TetSetup(field, fumens, fpieces, parent))
+                            #tuple of (fumen_str, sequence)
+                            fumens.append((child[0].attrib["href"].split(
+                                "fumen.zui.jp/?")[1], child[0].text))
+                    solutions.append(TetSolution(field_str, fumens))
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception

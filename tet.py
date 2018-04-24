@@ -1,5 +1,10 @@
 """
 'tet' module, contains a bunch of classes used for dealing with Tetris fields, fumen diagrams, and opener specifications
+
+From simple->complex:
+* TetField - representation of Tetris matrix, methods for importing/exporting diagram representations, and manipulations
+* TetFumen - fumen diagram
+
 """
 
 #import sfinder
@@ -9,6 +14,10 @@ class TetField:
     """Simple implementation of Tetris matrix, no colors, just filled and empty blocks."""
 
     def __init__(self, fromstring):
+        """Generates matrix from field diagram.
+        
+        Note that in input, rows are NOT separated by newlines (html processing strips <br> elements).
+        """
         self.height = len(fromstring) // 10
         self.clearedRows = 0  # keep track of cleared rows to figure out PC height
         self.field = []
@@ -72,7 +81,7 @@ class TetField:
         return True
 
 
-class TetSetup:
+''' class TetSetup:
     """Field + fumen diagrams for each step"""
 
     def __init__(self, fieldstr, fumens, pieces, parent=None):
@@ -121,18 +130,26 @@ class TetSetup:
             fumen.findPC(sf, height)
             pcr = float(fumen.PC_rate)
             if pcr > self.PC_rate:
-                self.PC_rate = pcr
+                self.PC_rate = pcr '''
 
 
-class TetFumen:
-    """Wrapper for fumen + piece sequence"""
+class TetSolution:
+    """Wrapper for sfinder solutions.
+    
+    Contains field, fumen diagram(s) of ways to reach that field, and corresponding piece sequences for each fumen.
+    """
 
-    def __init__(self, fumen, pieces):
-        self.fumen = fumen
-        self.pieces = pieces
-        self.PC_rate = None
+    def __init__(self, field_str, fumens):
+        """Fieldstr is the field diagram output by sfinder (not separated by newlines).
+        fumens is a list of (fumen_str, sequence) tuples, where fumen_str is the link/data that can be imported by fumen
+        """
+        self.field = TetField(field_str)
+        self.fumens = fumens
+        #self.PC_rate = None
 
-    def findPC(self, sf, height):
+    # PC rate needs to be rethought, I don't want to put a 3rd thing in the tuple
+    # but since each fumen could potentially have a different sequence, PCs could be different
+    ''' def findPC(self, sf, height):
         """Find PC percent rate. (height and result are strings)"""
         self.PC_rate = sf.percent(
             field=self.fumen,
@@ -143,13 +160,36 @@ class TetFumen:
         ret = self.fumen
         if self.PC_rate is not None:
             ret += " (%s%%)" % self.PC_rate
-        return ret
+        return ret '''
+
+
+class TetSetupCollection:
+    """Collection of solutions filtered to fit a certain specification."""
+
+    def __init__(self, sols, filter_func):
+        self.fields = []
+        self.fumens = []
+        self.sequences = []
+        #TetSetupCollection children for each continuation
+        self.continuations = []
+        filtered = filter(filter_func, sols)  # should this be elsewhere?
+        # break appart solutions for separate processing
+        for sol in filtered:
+            for fumen, seq in sol.fumens:
+                self.fields.append(sol.field)
+                self.fumens.append(fumen)
+                self.sequences.append(seq)
+        self.length = len(self.sequences)
+
+    def findContinuationsWithOverlay(self, overlay):
+        return
 
 
 class TetOverlay:
     """Overlay wrapper, for importing/generating overlays.
     
     Overlays are basically what I am calling a setup diagram that is superimposed onto the current setup.
+    Eventually, this class will have functions to generate overlays to find Tspins, etc., on top of an arbitrary field
     """
 
     def __init__(self, overlayString):
