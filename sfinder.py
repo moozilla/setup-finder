@@ -16,7 +16,11 @@ class SFinder:
         else:
             self.working_dir = "%s\\%s" % (getcwd(), SFINDER_VER)
 
-    def setup(self, field=None, pieces=None, print_results=False):
+    def setup(self,
+              field=None,
+              pieces=None,
+              input_diagram=None,
+              print_results=False):
         """Run sfinder setup command, return setups.
         
         Returns a list of TetSolutions.
@@ -26,6 +30,8 @@ class SFinder:
             args.extend(["-t", field])
         if pieces:
             args.extend(["-p", pieces])
+        if input_diagram:
+            self.setInputTxt(input_diagram)
         try:
             output = subprocess.check_output(
                 args,
@@ -44,16 +50,15 @@ class SFinder:
                 sections = tree.xpath("//section")
                 solutions = []
                 for section in sections:
-                    fumens = []
                     for child in section:
                         if child.tag == "p":
                             etree.strip_tags(child[0], "br")
                             field_str = child[0].text
                         if child.tag == "div":
-                            #tuple of (fumen_str, sequence)
-                            fumens.append((child[0].attrib["href"].split(
-                                "fumen.zui.jp/?")[1], child[0].text))
-                    solutions.append(TetSolution(field_str, fumens))
+                            solutions.append(
+                                TetSolution(field_str, child[0].attrib[
+                                    "href"].split("fumen.zui.jp/?")[1],
+                                            child[0].text))
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception

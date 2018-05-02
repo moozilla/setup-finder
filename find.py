@@ -5,10 +5,8 @@ Using: solution-finder-0.511
 """
 
 import time
-#from operator import itemgetter # for sorting
-import sfinder, tet  # for code completion
 from sfinder import SFinder
-from tet import TetOverlay, TetSetupCollection
+from tet import TetOverlay, TetSetup
 
 
 def isTSS(solution, verticalT=False):
@@ -16,31 +14,66 @@ def isTSS(solution, verticalT=False):
     # (carrying over pieces into the next bag makes search space too large)
 
     # find # pieces by taking len of sequence str (all fumens should have same length)
-    if len(solution.fumens[0][1]) == 6:
+    if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
         solution.field.addT(2, 2, vertical=verticalT)
-        solution.fumens = [(fs, seq + "T") for fs, seq in solution.fumens]
+        # todo: (maybe I should move addT to TetSolution?)
+        solution.sequence += "T"
         return solution.field.clearedRows == 1
     else:
         return False
 
 
+def findContinuationsWithOverlay(sols, overlay):
+    """Takes a list of TetSolutions, returns a list of TetSetups"""
+    # need to make sure different invocations of sfinder respect working_path if it is set differently
+    sf = SFinder()
+    valid_overlays = list(
+        map(TetSetup, filter(lambda sol: sol.addOverlay(overlay), sols)))
+    print("Found %d valid overlays" % len(valid_overlays))
+    return list(filter(lambda setup: setup.addContinuations(sf.setup(input_diagram=setup.solution.field.tostring())), valid_overlays))
+
+
 def findTSSTetrisPC():
-    """Find setups that start with a TSS and end with a Tetris+PC."""
+    """Find setups that start with a TSS and end with a Tetris+PC.
+    
+    This is an example of how to use setup-finder to find multi-bag setups. Hopefully it is a good enough
+    starting off point to apply to other problems.
+
+    First we find first bag solutions, using sf.setup and a fumen input, then filter them using isTSS.
+    Later on, setup-finder will generate all possible TSS setups (or even have solutions pre-generated somewhere),
+    so you won't have to manually create a fumen for each T position.
+
+    Next, we import an overlay and find continuations for all the bag 1 setups we found.
+    Eventually you'll be able to specify what you are trying to do in some sort of input file, and overlays
+    will be able to be specified there in text form as below or in fumen form.
+    Also, you should be able to generate Tspin/Tetris overlays to find all possible attacking continuations.
+
+    Lastly, we find PCs and print results sorted by PC rate. Since PCs will always be the "end" of a setup
+    in the sense that you end up with a blank field, they are treated differently than continuations.
+    (Todo: For setups that start AFTER a PC in the middle of a bag, maybe I should have a setting to find these.)
+    Later on, you should be able to find setups that don't end on a PC that are scored and sorted differently,
+    for example by the success rate per piece sequence, or by the average key presses used. PCs should also be
+    weighted based on what piece sequences they can be stacked by (or the minimum number of setups to learn to get
+    the desired success rate.)
+    """
     sf = SFinder()
     print("Working dir: %s" % sf.working_dir)
     timer_start = time.perf_counter()
 
     print("Bag 1: Finding TSS setups...")
     bag1_sols = sf.setup(
-        field="v115@pgQpBeXpBeXpBewhWpCeVpxhAe2hZpJeAgWPAtD98A?wG98AwzVTASokCA",
+        field="v115@zgQpBeXpBewhWpCeVpxhAe2hZpJeAgWPAtD98AwG98?AwzVTASokCA",
         pieces="[^T]!")
     print("Found %d solutions with possible TSS at 2,2" % len(bag1_sols))
-    setups = TetSetupCollection(bag1_sols, isTSS)
-    print("Bag 1: Found %d total valid TSS setups" % setups.length, end=' ')
+    valid_bag1_sols = list(
+        filter(lambda sol: isTSS(sol, verticalT=True), bag1_sols))
+    print(
+        "Bag 1: Found %d total valid TSS setups" % len(valid_bag1_sols),
+        end=' ')
     print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
-    print("Bag 2: Adding overlays...")
+    print("Bag 2: Finding continuations with overlay...")
     overlay = TetOverlay("""*........_
                             *........_
                             *........_
@@ -48,37 +81,26 @@ def findTSSTetrisPC():
                             *********_
                             *********_
                             *********_""")
-    setups.findContinuationsWithOverlay(overlay)
-    print("Bag 2: Found %d valid continuation setups" % setups.length, end=' ')
+    setups = findContinuationsWithOverlay(valid_bag1_sols, overlay)
+    print(
+        "Bag 2: Found %d setups with valid continuations" % len(setups),
+        end=' ')
     print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
-    '''bag2_continuations = list(
-        filter(lambda setup: setup.addOverlay(overlay), bag1_setups))
-    print("Bag 2: Found %d possible continuations with overlay" %
-          len(bag2_continuations))
-    bag2_setups = []
-    for cont in bag2_continuations:
-        cont.outputInputTxt(sf)  #output diagram to sfinder's input.txt
-        #run without args to use input.txt and *p7 piece seq
-        setups = sf.setup(parent=cont)
-        if setups is not None and len(setups) > 0:
-            bag2_setups.extend(setups)
-
 
     print("Bag 3: Finding PCs...")
-    bag3_pcs = 0
-    with open("output.txt", "w+") as outputFile:
-        for setup in bag2_setups:
-            setup.findPCs(sf, "7")
-            if setup.PC_rate > 0.00:
-                bag3_pcs += 1
-                outputFile.write(setup.tostring())
-                outputFile.write("\n\n")
+    pc_setups = list(filter(lambda setup: setup.findPCs(sf), setups))
     print(
-        "Bag 3: Found %d PCs with success greater than 0%%, outputting to output.txt"
-        % bag3_pcs,
+        "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
+        % len(pc_setups),
         end=' ')
     print("(Total elapsed time: %.2fsec)" %
-          (time.perf_counter() - timer_start)) '''
+          (time.perf_counter() - timer_start))
+
+    with open("output.txt", "w+") as outputFile:
+        for setup in sorted(
+                pc_setups, key=(lambda s: s.PC_rate), reverse=True):
+            outputFile.write(setup.tostring())
+            outputFile.write("\n\n")
 
 
 def main():
