@@ -3,7 +3,8 @@
 import re, subprocess, tet
 from lxml import html, etree
 from os import getcwd
-from tet import TetSolution
+from tet import TetSolution, TetField
+import cache
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -17,17 +18,22 @@ class SFinder:
             self.working_dir = "%s\\%s" % (getcwd(), SFINDER_VER)
 
     def setup(self,
-              field=None,
+              fumen=None,
               pieces=None,
               input_diagram=None,
-              print_results=False):
+              print_results=False,
+              useCache=False):
         """Run sfinder setup command, return setups.
         
         Returns a list of TetSolutions.
         """
+        if useCache == True and fumen is not None:
+            cachedResult = cache.getSolutions(fumen)
+            if cachedResult:
+                return cachedResult
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
-        if field:
-            args.extend(["-t", field])
+        if fumen:
+            args.extend(["-t", fumen])
         if pieces:
             args.extend(["-p", pieces])
         if input_diagram:
@@ -56,9 +62,13 @@ class SFinder:
                             field_str = child[0].text
                         if child.tag == "div":
                             solutions.append(
-                                TetSolution(field_str, child[0].attrib[
-                                    "href"].split("fumen.zui.jp/?")[1],
-                                            child[0].text))
+                                TetSolution(
+                                    TetField(from_string=field_str),
+                                    child[0].attrib["href"].split(
+                                        "fumen.zui.jp/?")[1],
+                                    child[0].text))
+                if useCache:
+                    cache.saveSolutions(fumen, solutions)
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception

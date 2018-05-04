@@ -28,7 +28,7 @@ def data_to_field(field_data):
     ]) """
 
 
-def parse(fumen_str):
+def decode(fumen_str):
     if fumen_str[:5] != "v115@":
         raise ValueError("Unsupported fumen version.")
 

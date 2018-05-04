@@ -64,16 +64,15 @@ def findTSSTetrisPC():
 
     print("Bag 1: Finding TSS setups...")
     bag1_sols = sf.setup(
-        field="v115@zgQpBeXpBewhWpCeVpxhAe2hZpJeAgWPAtD98AwG98?AwzVTASokCA",
-        pieces="[^T]!")
+        fumen=
+        "v115@pgQpBeXpBeXpBewhWpCeVpxhAe2hZpJeAgWkAtD98A?wG98AwzVTASocTASodOEFbcRAVDEHBleEHBEoA6A",
+        useCache=True)
     print("Found %d solutions with possible TSS at 2,2" % len(bag1_sols))
-    valid_bag1_sols = list(
+    valid_sols = list(
         filter(lambda sol: isTSS(sol, verticalT=True), bag1_sols))
-    print(
-        "Bag 1: Found %d total valid TSS setups" % len(valid_bag1_sols),
-        end=' ')
+    print("Bag 1: Found %d total valid TSS setups" % len(valid_sols), end=' ')
     print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
-    print("Bag 2: Finding continuations with overlay...")
+    ''' print("Bag 2: Finding continuations with overlay...")
     overlay = TetOverlay("""*........_
                             *........_
                             *........_
@@ -100,7 +99,7 @@ def findTSSTetrisPC():
         for setup in sorted(
                 pc_setups, key=(lambda s: s.PC_rate), reverse=True):
             outputFile.write(setup.tostring())
-            outputFile.write("\n\n")
+            outputFile.write("\n\n") '''
 
 
 def main():

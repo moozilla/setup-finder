@@ -14,22 +14,26 @@ import sfinder
 class TetField:
     """Simple implementation of Tetris matrix, no colors, just filled and empty blocks."""
 
-    def __init__(self, fromstring):
+    def __init__(self, from_string=None, from_list=None):
         """Generates matrix from field diagram.
         
         Note that in input, rows are NOT separated by newlines (html processing strips <br> elements).
         """
-        self.height = len(fromstring) // 10
         self.clearedRows = 0  # keep track of cleared rows to figure out PC height
-        self.field = []
-        i = 0
-        for _ in range(self.height):
-            row = [0] * 10
-            for x in range(10):
-                row[x] = 1 if (fromstring[i] == "X") else 0
-                i += 1
-            # insert row at top, because diagram is top->bottom but field bottom is y=0
-            self.field.insert(0, row)
+        if from_string:
+            self.height = len(from_string) // 10
+            self.field = []
+            i = 0
+            for _ in range(self.height):
+                row = [0] * 10
+                for x in range(10):
+                    row[x] = 1 if (from_string[i] == "X") else 0
+                    i += 1
+                # insert row at top, because diagram is top->bottom but field bottom is y=0
+                self.field.insert(0, row)
+        if from_list:
+            self.field = from_list
+            self.height = len(self.field)
 
     def tostring(self):
         rows = []
@@ -103,11 +107,8 @@ class TetOverlay:
 class TetSolution:
     """Wrapper for sfinder solutions. Setups with multiple fumens are split into multiple TetSolutions for simplicity."""
 
-    def __init__(self, field_str, fumen, sequence):
-        """Fieldstr is the field diagram output by sfinder (not separated by newlines).
-        fumens is a list of (fumen_str, sequence) tuples, where fumen_str is the link/data that can be imported by fumen
-        """
-        self.field = TetField(field_str)
+    def __init__(self, field, fumen, sequence):
+        self.field = field
         self.fumen = fumen
         self.sequence = sequence
         #self.PC_rate = None
