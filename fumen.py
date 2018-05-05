@@ -7,6 +7,8 @@ I only need to parse the field and comments for commmunicating with solution-fin
 Might require parsing pieces as well.)
 """
 
+from urllib.parse import quote
+
 FIELD_BLOCKS = 240  # number of blocks on field in fumen frame (24 rows of 10)
 ENC_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"  # used for pseudo-base64 decoding
 ASC_TABLE = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"  # for decoding comments
@@ -79,3 +81,88 @@ def decode(fumen_str):
     if len(data) - i > 0:
         raise NotImplementedError("Data remaining after first frame parsed.")
     return (data_to_field(field), comment)
+
+
+def encode(field, comment=None):
+    """Encode a fumen diagram with optional comment.
+    
+    Field is in list form, should be converted to fumen colors first.
+    Pieces and extra data stuff isn't supported.
+    Only ASCII comments are supported for now. (Could use urllib.parse.quote to simulate escape, but it's not one-to-one.)
+    Comment must be less than 4096 characters.
+    """
+
+    frame = [0] * FIELD_BLOCKS
+    # add field from bottom->top into blank frame
+    for y, row in enumerate(field):
+        for x in range(10):
+            frame[((22 - y) * 10) + x] = row[x]
+
+    # fumen encoding starts here
+    data = []
+    for i in range(FIELD_BLOCKS):
+        frame[i] += 8
+
+    # simple run-length encoding for field-data
+    repeat_count = 0
+    for j in range(FIELD_BLOCKS - 1):
+        repeat_count += 1
+        if frame[j] != frame[j + 1]:
+            val = (frame[j] * FIELD_BLOCKS) + (repeat_count - 1)
+            data.append(val % 64)
+            val = val // 64
+            data.append(val % 64)
+            repeat_count = 0
+    # output final block
+    val = (frame[FIELD_BLOCKS - 1] * FIELD_BLOCKS) + (repeat_count)
+    data.append(val % 64)
+    val = val // 64
+    data.append(val % 64)
+    #ignore check for blank frame/field repeat here
+
+    # piece/data output, only thing I implement here is comment flag + "ct" flag (Guideline colors)
+    val = 1 if comment is not None else 0
+    val = 128 * FIELD_BLOCKS * ((val * 2) + 1)
+    data.append(val % 64)
+    val = val // 64
+    data.append(val % 64)
+    val = val // 64
+    data.append(val % 64)
+
+    if comment is not None:
+        comment_str = quote(comment[:4096])
+        comment_len = len(comment_str)
+
+        comment_data = [ASC_TABLE.index(c) for c in comment_str]
+        # pad data if necessary
+        if (comment_len % 4) > 0:
+            comment_data.extend([0] * (4 - (comment_len % 4)))
+
+        # output length of comment
+        val = comment_len
+        data.append(val % 64)
+        val = val // 64
+        data.append(val % 64)
+
+        # every 4 chars becomes 5 bytes (4 * 96 chars in ASCII table = 5 * 64)
+        for i in range(0, comment_len, 4):
+            val = comment_data[i]
+            val += comment_data[i + 1] * 96
+            val += comment_data[i + 2] * 9216
+            val += comment_data[i + 3] * 884736
+            data.append(val % 64)
+            val = val // 64
+            data.append(val % 64)
+            val = val // 64
+            data.append(val % 64)
+            val = val // 64
+            data.append(val % 64)
+            val = val // 64
+            data.append(val % 64)
+
+    encode_str = "v115@"
+    for i, output_byte in enumerate(data):
+        encode_str += ENC_TABLE[output_byte]
+        if i % 47 == 41:
+            encode_str += "?"
+    return encode_str
