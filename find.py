@@ -10,7 +10,7 @@ from tet import TetOverlay, TetSetup
 import gen
 
 
-def isTSS(solution, verticalT=False):
+def isTSS(solution, x, y, verticalT=False):
     # for now, filter out solutions that use less than 6 pieces
     # (carrying over pieces into the next bag makes search space too large)
 
@@ -18,7 +18,7 @@ def isTSS(solution, verticalT=False):
     if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
-        solution.field.addT(2, 2, vertical=verticalT)
+        solution.field.addT(x, y, vertical=verticalT)
         # todo: (maybe I should move addT to TetSolution?)
         solution.sequence += "T"
         return solution.field.clearedRows == 1
@@ -63,14 +63,18 @@ def findTSSTetrisPC():
     print("Working dir: %s" % sf.working_dir)
     timer_start = time.perf_counter()
 
-    tss_fumen = gen.outputFumen(gen.generateTSS1(5, 2, 2))
-    print(tss_fumen)
-    print("Bag 1: Finding TSS setups...")
-    bag1_sols = sf.setup(fumen=tss_fumen, useCache=True)
-    print("Found %d solutions with possible TSS at 2,2" % len(bag1_sols))
-    valid_sols = list(
-        filter(lambda sol: isTSS(sol, verticalT=True), bag1_sols))
-    print("Bag 1: Found %d total valid TSS setups" % len(valid_sols), end=' ')
+    print("Bag 1: Finding row 2 TSS1 setups...")
+    bag1_sols = []
+    for x in range(1, 8):  #only 1-7 are possible
+        tss_fumen = gen.outputFumen(gen.generateTSS1(6, x, 2))
+        tss_sols = sf.setup(fumen=tss_fumen, useCache=True)
+        print("  Found %d solutions with possible TSS at %d, 2" %
+              (len(tss_sols), x))
+        valid_sols = list(
+            filter(lambda sol: isTSS(sol, x, 2, verticalT=True), tss_sols))
+        print("  Found %d valid TSS setups at %d, 2" % (len(valid_sols), x))
+        bag1_sols.extend(valid_sols)
+    print("Bag 1: Found %d total valid TSS setups" % len(bag1_sols), end=' ')
     print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
     print("Bag 2: Finding continuations with overlay...")
     overlay = TetOverlay("""*........_
@@ -80,7 +84,7 @@ def findTSSTetrisPC():
                             *********_
                             *********_
                             *********_""")
-    setups = findContinuationsWithOverlay(valid_sols, overlay)
+    setups = findContinuationsWithOverlay(bag1_sols, overlay)
     print(
         "Bag 2: Found %d setups with valid continuations" % len(setups),
         end=' ')
