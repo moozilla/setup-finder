@@ -72,7 +72,7 @@ def findTSSTetrisPC():
         filter(lambda sol: isTSS(sol, verticalT=True), bag1_sols))
     print("Bag 1: Found %d total valid TSS setups" % len(valid_sols), end=' ')
     print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
-    ''' print("Bag 2: Finding continuations with overlay...")
+    print("Bag 2: Finding continuations with overlay...")
     overlay = TetOverlay("""*........_
                             *........_
                             *........_
@@ -80,7 +80,7 @@ def findTSSTetrisPC():
                             *********_
                             *********_
                             *********_""")
-    setups = findContinuationsWithOverlay(valid_bag1_sols, overlay)
+    setups = findContinuationsWithOverlay(valid_sols, overlay)
     print(
         "Bag 2: Found %d setups with valid continuations" % len(setups),
         end=' ')
@@ -99,7 +99,7 @@ def findTSSTetrisPC():
         for setup in sorted(
                 pc_setups, key=(lambda s: s.PC_rate), reverse=True):
             outputFile.write(setup.tostring())
-            outputFile.write("\n\n") '''
+            outputFile.write("\n\n")
 
 
 def main():
