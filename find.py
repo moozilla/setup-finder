@@ -7,6 +7,7 @@ Using: solution-finder-0.511
 import time
 from sfinder import SFinder
 from tet import TetOverlay, TetSetup
+import gen
 
 
 def isTSS(solution, verticalT=False):
@@ -62,11 +63,10 @@ def findTSSTetrisPC():
     print("Working dir: %s" % sf.working_dir)
     timer_start = time.perf_counter()
 
+    tss_fumen = gen.outputFumen(gen.generateTSS1(5, 2, 2))
+    print(tss_fumen)
     print("Bag 1: Finding TSS setups...")
-    bag1_sols = sf.setup(
-        fumen=
-        "v115@pgQpBeXpBeXpBewhWpCeVpxhAe2hZpJeAgWkAtD98A?wG98AwzVTASocTASodOEFbcRAVDEHBleEHBEoA6A",
-        useCache=True)
+    bag1_sols = sf.setup(fumen=tss_fumen, useCache=True)
     print("Found %d solutions with possible TSS at 2,2" % len(bag1_sols))
     valid_sols = list(
         filter(lambda sol: isTSS(sol, verticalT=True), bag1_sols))

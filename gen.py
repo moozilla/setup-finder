@@ -1,5 +1,7 @@
 """Methods for generating different types of setups and overlays and outputting fumen diagrams sfinder can use."""
 
+import fumen
+
 # reversed because TetField goes from bottom->top and I want it to be compatible
 SHAPE_TSPIN = list(reversed([
     [0, 0, 2],
@@ -52,11 +54,8 @@ def generateTSD(field_height, x, y):
     return generateSetup(field_height, [y - 1, y], SHAPE_TSPIN, x - 1, y - 1)
 
 
-def main():
-    # generate a TSS1 (bottom row clear) centered on 1,1
-    field = generateTSD(6, 1, 1)
-    print(prettify(field))
-
-
-if __name__ == '__main__':
-    main()
+def outputFumen(field, comment="-m o -f i -p [^T]!"):
+    """Fix colors and add default sfinder args as comment."""
+    # translate my field diagram into solid = gray, fill = I, margin = O
+    fixed_colors = [[[0, 8, 1, 3][b] for b in row] for row in field]
+    return fumen.encode(fixed_colors, comment="-m o -f i -p [^T]!")
