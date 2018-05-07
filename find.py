@@ -12,7 +12,7 @@ from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 
 
-def isTSS(solution, x, y, verticalT=False):
+def is_TSS(solution, x, y, vertical_T=False):
     # for now, filter out solutions that use less than 6 pieces
     # (carrying over pieces into the next bag makes search space too large)
 
@@ -20,7 +20,7 @@ def isTSS(solution, x, y, verticalT=False):
     if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
-        solution.field.addT(x, y, vertical=verticalT)
+        solution.field.addT(x, y, vertical=vertical_T)
         # todo: (maybe I should move addT to TetSolution?)
         solution.sequence += "T"
         return solution.field.clearedRows == 1
@@ -28,14 +28,14 @@ def isTSS(solution, x, y, verticalT=False):
         return False
 
 
-def findContinuationsWithOverlay(sols, overlay):
-    """Takes a list of TetSolutions, returns a list of TetSetups"""
-    # need to make sure different invocations of sfinder respect working_path if it is set differently
+def find_continuations(sols, overlay):
+    """Find continuations for a list of solutions using an overlay. Returns a list of TetSetups."""
+    # todo: need to make sure different invocations of sfinder respect working_path if it is set differently
     sf = SFinder()
     # filter out solutions where adding overlay isn't possible (eg. filled block where it must be unfilled)
     # use list here so printing doesn't consume the filter
     filtered_setups = list(
-        map(TetSetup, filter(lambda sol: sol.addOverlay(overlay), sols)))
+        map(TetSetup, filter(lambda sol: sol.add_overlay(overlay), sols)))
     print(
         "%d setups have potential continuations. Finding continuation setups..."
         % len(filtered_setups))
@@ -43,13 +43,13 @@ def findContinuationsWithOverlay(sols, overlay):
     return list(filter(lambda setup: setup.add_continuations(sf.setup(input_diagram=setup.solution.field.tostring())), tqdm(filtered_setups, unit="setup")))
 
 
-def findTSSTetrisPC():
+def find_TSS_Tetris_PC():
     """Find setups that start with a TSS and end with a Tetris+PC.
     
     This is an example of how to use setup-finder to find multi-bag setups. Hopefully it is a good enough
     starting off point to apply to other problems.
 
-    First we find first bag solutions, using sf.setup and a fumen input, then filter them using isTSS.
+    First we find first bag solutions, using sf.setup and a fumen input, then filter them using is_TSS.
     Later on, setup-finder will generate all possible TSS setups (or even have solutions pre-generated somewhere),
     so you won't have to manually create a fumen for each T position.
 
@@ -83,7 +83,7 @@ def findTSSTetrisPC():
             print("  Found %d solutions with possible TSS at %d, 1" %
                   (len(tss_sols), x))
             valid_sols = list(
-                filter(lambda sol: isTSS(sol, x, 1, verticalT=False),
+                filter(lambda sol: is_TSS(sol, x, 1, vertical_T=False),
                        tss_sols))
             print("  Found %d valid TSS setups at %d, 1" % (len(valid_sols),
                                                             x))
@@ -99,7 +99,7 @@ def findTSSTetrisPC():
                                 *********_
                                 *********_
                                 *********_""")
-        setups = findContinuationsWithOverlay(bag1_sols, overlay)
+        setups = find_continuations(bag1_sols, overlay)
         num_continuations = sum(
             map(lambda setup: len(setup.continuations), setups))
         print(
@@ -119,15 +119,15 @@ def findTSSTetrisPC():
         print("(Total elapsed time: %.2fsec)" %
               (time.perf_counter() - timer_start))
 
-    with open("output.txt", "w+") as outputFile:
+    with open("output.txt", "w+") as output_file:
         for setup in sorted(
                 pc_setups, key=(lambda s: s.PC_rate), reverse=True):
-            outputFile.write(setup.tostring())
-            outputFile.write("\n\n")
+            output_file.write(setup.tostring())
+            output_file.write("\n\n")
 
 
 def main():
-    findTSSTetrisPC()
+    find_TSS_Tetris_PC()
 
 
 if __name__ == '__main__':

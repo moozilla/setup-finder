@@ -47,7 +47,7 @@ class TetField:
             #str = row + "\n" + str  # display field top->bottom
         return "\n".join(rows)
 
-    def addT(self, x, y, vertical=False):
+    def add_T(self, x, y, vertical=False):
         """Add a T piece to the field (x,y) marks center of piece. For now vertical Ts point right"""
         if vertical:
             self.field[y + 1][x] = 1
@@ -59,16 +59,16 @@ class TetField:
             self.field[y][x] = 1
             self.field[y][x + 1] = 1
             self.field[y - 1][x] = 1
-        self.clearRows()
+        self.clear_rows()
 
-    def clearRows(self):
+    def clear_rows(self):
         self.field = [row for row in self.field if row != ([1] * 10)]
         newHeight = len(self.field)
         self.clearedRows += self.height - newHeight
         # print("Cleared %d rows" % (self.height - newHeight))
         self.height = newHeight
 
-    def addOverlay(self, overlay):
+    def add_overlay(self, overlay):
         """
         Add overlay onto field for generating further setups.
         2 = fill, 3 = margin, 0 = must be blank
@@ -115,7 +115,7 @@ class TetSolution:
         #self.PC_rate = None
 
     #honestly have no idea which class this shoud be in
-    def addOverlay(self, tetOverlay):
+    def add_overlay(self, tetOverlay):
         return self.field.addOverlay(tetOverlay.overlay)
 
     def get_remaining_pieces(self):
@@ -152,7 +152,7 @@ class TetSetup:
         else:
             return False
 
-    def findPCs(self, sf):
+    def find_PCs(self, sf):
         """Find PCs for all continuations, then figure out overall PC rate.
         
         Returns true if overall PC rate is > 0.00, for filtering.
@@ -161,7 +161,7 @@ class TetSetup:
             # find PCs for all continuations, filter out continuations without PCs
             self.continuations = list(
                 filter(lambda cont: cont.findPCs(sf),
-                       tqdm(self.continuations)))
+                       tqdm(self.continuations, unit="PC")))
             if len(self.continuations) == 0:
                 # no PCs found
                 self.PC_rate = 0.00
