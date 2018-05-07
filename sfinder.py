@@ -28,9 +28,9 @@ class SFinder:
         Returns a list of TetSolutions.
         """
         if use_cache == True and fumen is not None:
-            cachedResult = cache.get_solutions(fumen)
-            if cachedResult is not None:
-                return cachedResult
+            cached_result = cache.get_solutions(fumen)
+            if cached_result is not None:
+                return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if fumen:
             args.extend(["-t", fumen])
@@ -78,11 +78,16 @@ class SFinder:
             print("Sfinder Error: %s" % re.search(r"Message: (.+)\n",
                                                   e.output).group(1))
 
-    def percent(self, field=None, pieces=None, height=None):
+    def percent(self, fumen=None, pieces=None, height=None, use_cache=False):
         """Run sfinder percent command, return overall success rate (just the number)"""
+        if use_cache == True and fumen is not None and pieces is not None:
+            # "r" for rate, I'll use "p" if I implement path later on
+            cached_result = cache.get_PC_rate("r" + pieces + fumen)
+            if cached_result is not None:
+                return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "percent"]
-        if field:
-            args.extend(["-t", field])
+        if fumen:
+            args.extend(["-t", fumen])
         if pieces:
             args.extend(["-p", pieces])
         if height:
@@ -95,7 +100,10 @@ class SFinder:
                 universal_newlines=True)
             match = re.search(r"success = (\d+\.\d+)%", output)
             if match:
-                return match.group(1)
+                pc_rate = match.group(1)
+                if use_cache:
+                    cache.save_PC_rate("r" + pieces + fumen, pc_rate)
+                return pc_rate
             else:
                 raise RuntimeError(
                     "Couldn't find percentage in sfinder output.\n\n" + output)

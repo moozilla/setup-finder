@@ -172,14 +172,12 @@ class TetSetup:
                 # no PCs found
                 self.PC_rate = 0.00
                 return False
-            self.PC_rate = sum(
-                map(lambda cont: cont.PC_rate, self.continuations)) / len(
-                    self.continuations)
+            self.PC_rate = max([cont.PC_rate for cont in self.continuations])
         else:
             self.PC_rate = float(
                 sf.percent(self.solution.fumen,
                            self.solution.get_remaining_pieces(),
-                           str(self.solution.field.height)))
+                           str(self.solution.field.height), True))
         return self.PC_rate > 0.00
 
     def tostring(self, cont=False):
