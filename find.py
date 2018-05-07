@@ -8,6 +8,8 @@ import time
 from sfinder import SFinder
 from tet import TetOverlay, TetSetup
 import gen
+from tqdm import tqdm, TqdmSynchronisationWarning
+import warnings
 
 
 def isTSS(solution, x, y, verticalT=False):
@@ -30,10 +32,15 @@ def findContinuationsWithOverlay(sols, overlay):
     """Takes a list of TetSolutions, returns a list of TetSetups"""
     # need to make sure different invocations of sfinder respect working_path if it is set differently
     sf = SFinder()
-    valid_overlays = list(
+    # filter out solutions where adding overlay isn't possible (eg. filled block where it must be unfilled)
+    # use list here so printing doesn't consume the filter
+    filtered_setups = list(
         map(TetSetup, filter(lambda sol: sol.addOverlay(overlay), sols)))
-    print("Found %d valid overlays" % len(valid_overlays))
-    return list(filter(lambda setup: setup.addContinuations(sf.setup(input_diagram=setup.solution.field.tostring())), valid_overlays))
+    print(
+        "%d setups have potential continuations. Finding continuation setups..."
+        % len(filtered_setups))
+    # find continuations for each sol with tqdm progress bar, then add them as continuations to each setup, filtering setups without results
+    return list(filter(lambda setup: setup.add_continuations(sf.setup(input_diagram=setup.solution.field.tostring())), tqdm(filtered_setups, unit="setup")))
 
 
 def findTSSTetrisPC():
@@ -59,45 +66,58 @@ def findTSSTetrisPC():
     weighted based on what piece sequences they can be stacked by (or the minimum number of setups to learn to get
     the desired success rate.)
     """
-    sf = SFinder()
-    print("Working dir: %s" % sf.working_dir)
-    timer_start = time.perf_counter()
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            "ignore",
+            TqdmSynchronisationWarning)  #annoying tqdm bug workaround
 
-    print("Bag 1: Finding row 2 TSS1 setups...")
-    bag1_sols = []
-    for x in range(1, 8):  #only 1-7 are possible
-        tss_fumen = gen.outputFumen(gen.generateTSS1(6, x, 2))
-        tss_sols = sf.setup(fumen=tss_fumen, useCache=True)
-        print("  Found %d solutions with possible TSS at %d, 2" %
-              (len(tss_sols), x))
-        valid_sols = list(
-            filter(lambda sol: isTSS(sol, x, 2, verticalT=True), tss_sols))
-        print("  Found %d valid TSS setups at %d, 2" % (len(valid_sols), x))
-        bag1_sols.extend(valid_sols)
-    print("Bag 1: Found %d total valid TSS setups" % len(bag1_sols), end=' ')
-    print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
-    print("Bag 2: Finding continuations with overlay...")
-    overlay = TetOverlay("""*........_
-                            *........_
-                            *........_
-                            *********_
-                            *********_
-                            *********_
-                            *********_""")
-    setups = findContinuationsWithOverlay(bag1_sols, overlay)
-    print(
-        "Bag 2: Found %d setups with valid continuations" % len(setups),
-        end=' ')
-    print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
+        sf = SFinder()
+        print("Working dir: %s" % sf.working_dir)
+        timer_start = time.perf_counter()
 
-    print("Bag 3: Finding PCs...")
-    pc_setups = list(filter(lambda setup: setup.findPCs(sf), setups))
-    print(
-        "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
-        % len(pc_setups),
-        end=' ')
-    print("(Total elapsed time: %.2fsec)" %
-          (time.perf_counter() - timer_start))
+        print("Bag 1: Finding row 1 TSS2 setups...")
+        bag1_sols = []
+        for x in range(1, 8):  #only 1-7 are possible
+            tss_fumen = gen.outputFumen(gen.generateTSS2(6, x, 1))
+            tss_sols = sf.setup(fumen=tss_fumen, useCache=True)
+            print("  Found %d solutions with possible TSS at %d, 1" %
+                  (len(tss_sols), x))
+            valid_sols = list(
+                filter(lambda sol: isTSS(sol, x, 1, verticalT=False),
+                       tss_sols))
+            print("  Found %d valid TSS setups at %d, 1" % (len(valid_sols),
+                                                            x))
+            bag1_sols.extend(valid_sols)
+        print(
+            "Bag 1: Found %d total valid TSS setups" % len(bag1_sols), end=' ')
+        print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
+        print("Bag 2: Finding continuations with overlay...")
+        overlay = TetOverlay("""*........_
+                                *........_
+                                *........_
+                                *********_
+                                *********_
+                                *********_
+                                *********_""")
+        setups = findContinuationsWithOverlay(bag1_sols, overlay)
+        num_continuations = sum(
+            map(lambda setup: len(setup.continuations), setups))
+        print(
+            "Bag 2: Found %d setups with %d valid continuations" %
+            (len(setups), num_continuations),
+            end=' ')
+        print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
+
+        print("Bag 3: Finding PCs...")
+        pc_setups = list(
+            filter(lambda setup: setup.findPCs(sf), tqdm(setups,
+                                                         unit="setup")))
+        print(
+            "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
+            % len(pc_setups),
+            end=' ')
+        print("(Total elapsed time: %.2fsec)" %
+              (time.perf_counter() - timer_start))
 
     with open("output.txt", "w+") as outputFile:
         for setup in sorted(

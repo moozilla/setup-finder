@@ -9,6 +9,7 @@ From simple->complex:
 """
 
 import sfinder
+from tqdm import tqdm
 
 
 class TetField:
@@ -142,7 +143,7 @@ class TetSetup:
         self.PC_rate = 0.00
         #self.depth?
 
-    def addContinuations(self, setups):
+    def add_continuations(self, setups):
         #print("Adding %d continations" % len(setups))
         if setups is not None and len(setups) > 0:
             #map is because this is passed TetSolutions (need to fix this?)
@@ -159,7 +160,8 @@ class TetSetup:
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
             self.continuations = list(
-                filter(lambda cont: cont.findPCs(sf), self.continuations))
+                filter(lambda cont: cont.findPCs(sf),
+                       tqdm(self.continuations)))
             if len(self.continuations) == 0:
                 # no PCs found
                 self.PC_rate = 0.00
