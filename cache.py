@@ -8,7 +8,7 @@ import fumen
 working_dir = "%s\\%s" % (getcwd(), "cache")
 
 
-def getCacheFile(fm):
+def get_cache_file(fm):
     """Generate proper filename based on fumen."""
     # strip version str, strip ?, replace / with _ to make it safe for filenames
     # note: on windows filenames are case insensitive so collisions could occur, but this probably will never happen
@@ -16,9 +16,9 @@ def getCacheFile(fm):
     return "%s\\%s.txt" % (working_dir, clean)
 
 
-def getSolutions(fm):
+def get_solutions(fm):
     """Attempt to retrieve solutions from cache."""
-    fname = getCacheFile(fm)
+    fname = get_cache_file(fm)
     if isfile(fname):
         with open(fname, "r") as cacheFile:
             sols = cacheFile.read().splitlines()
@@ -31,8 +31,8 @@ def getSolutions(fm):
         return None
 
 
-def saveSolutions(fm, solutions):
+def save_solutions(fm, solutions):
     """Save solutions in cache."""
     sols = "\n".join(map(lambda sol: sol.fumen, solutions))
-    with open(getCacheFile(fm), "w+") as cacheFile:
+    with open(get_cache_file(fm), "w+") as cacheFile:
         cacheFile.write(sols)

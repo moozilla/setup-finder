@@ -15,7 +15,7 @@ def prettify(field):
         ["".join(map(lambda b: "_X*." [b], row)) for row in reversed_field])
 
 
-def generateSetup(field_height, cleared_rows, shape, shape_x, shape_y):
+def generate_setup(field_height, cleared_rows, shape, shape_x, shape_y):
     """Generate field (in list form) to find setups for a shape at x,y that clears cleared_rows.
     
     Todo: this whole thing needs some error handling, especially the drop-in part
@@ -42,20 +42,20 @@ def generateSetup(field_height, cleared_rows, shape, shape_x, shape_y):
 
 # note: all of these are "left-facing" in that the opening is on the left, the overhang on the right
 #       if using for overlays (not 1st bag), you may need to mirror the generated setup to find right-facing spins
-def generateTSS1(field_height, x, y):
-    return generateSetup(field_height, [y - 1], SHAPE_TSPIN, x - 1, y - 1)
+def generate_TSS1(field_height, x, y):
+    return generate_setup(field_height, [y - 1], SHAPE_TSPIN, x - 1, y - 1)
 
 
-def generateTSS2(field_height, x, y):
-    return generateSetup(field_height, [y], SHAPE_TSPIN, x - 1, y - 1)
+def generate_TSS2(field_height, x, y):
+    return generate_setup(field_height, [y], SHAPE_TSPIN, x - 1, y - 1)
 
 
-def generateTSD(field_height, x, y):
-    return generateSetup(field_height, [y - 1, y], SHAPE_TSPIN, x - 1, y - 1)
+def generate_TSD(field_height, x, y):
+    return generate_setup(field_height, [y - 1, y], SHAPE_TSPIN, x - 1, y - 1)
 
 
-def outputFumen(field, comment="-m o -f i -p [^T]!"):
+def output_fumen(field, comment="-m o -f i -p [^T]!"):
     """Fix colors and add default sfinder args as comment."""
     # translate my field diagram into solid = gray, fill = I, margin = O
     fixed_colors = [[[0, 8, 1, 3][b] for b in row] for row in field]
-    return fumen.encode(fixed_colors, comment="-m o -f i -p [^T]!")
+    return fumen.encode(fixed_colors, comment=comment)
