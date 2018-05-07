@@ -22,14 +22,14 @@ class SFinder:
               pieces=None,
               input_diagram=None,
               print_results=False,
-              useCache=False):
+              use_cache=False):
         """Run sfinder setup command, return setups.
         
         Returns a list of TetSolutions.
         """
-        if useCache == True and fumen is not None:
-            cachedResult = cache.getSolutions(fumen)
-            if cachedResult:
+        if use_cache == True and fumen is not None:
+            cachedResult = cache.get_solutions(fumen)
+            if cachedResult is not None:
                 return cachedResult
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if fumen:
@@ -67,8 +67,8 @@ class SFinder:
                                     child[0].attrib["href"].split(
                                         "fumen.zui.jp/?")[1],
                                     child[0].text))
-                if useCache:
-                    cache.saveSolutions(fumen, solutions)
+                if use_cache:
+                    cache.save_solutions(fumen, solutions)
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception

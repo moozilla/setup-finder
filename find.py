@@ -20,7 +20,7 @@ def is_TSS(solution, x, y, vertical_T=False):
     if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
-        solution.field.addT(x, y, vertical=vertical_T)
+        solution.field.add_T(x, y, vertical=vertical_T)
         # todo: (maybe I should move addT to TetSolution?)
         solution.sequence += "T"
         return solution.field.clearedRows == 1
@@ -40,7 +40,7 @@ def find_continuations(sols, overlay):
         "%d setups have potential continuations. Finding continuation setups..."
         % len(filtered_setups))
     # find continuations for each sol with tqdm progress bar, then add them as continuations to each setup, filtering setups without results
-    return list(filter(lambda setup: setup.add_continuations(sf.setup(input_diagram=setup.solution.field.tostring())), tqdm(filtered_setups, unit="setup")))
+    return list(filter(lambda setup: setup.add_continuations(sf.setup(fumen=setup.get_fumen("-m o -f i -p *p7"), use_cache=True)), tqdm(filtered_setups, unit="setup")))
 
 
 def find_TSS_Tetris_PC():
@@ -78,8 +78,8 @@ def find_TSS_Tetris_PC():
         print("Bag 1: Finding row 1 TSS2 setups...")
         bag1_sols = []
         for x in range(1, 8):  #only 1-7 are possible
-            tss_fumen = gen.outputFumen(gen.generateTSS2(6, x, 1))
-            tss_sols = sf.setup(fumen=tss_fumen, useCache=True)
+            tss_fumen = gen.output_fumen(gen.generate_TSS2(6, x, 1))
+            tss_sols = sf.setup(fumen=tss_fumen, use_cache=True)
             print("  Found %d solutions with possible TSS at %d, 1" %
                   (len(tss_sols), x))
             valid_sols = list(
@@ -110,8 +110,8 @@ def find_TSS_Tetris_PC():
 
         print("Bag 3: Finding PCs...")
         pc_setups = list(
-            filter(lambda setup: setup.findPCs(sf), tqdm(setups,
-                                                         unit="setup")))
+            filter(lambda setup: setup.find_PCs(sf), tqdm(
+                setups, unit="setup")))
         print(
             "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
             % len(pc_setups),

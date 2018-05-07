@@ -8,7 +8,7 @@ From simple->complex:
 * TetSetup - TetSolution + continuations (either further TetSetup bags/steps or PCs)
 """
 
-import sfinder
+import sfinder, fumen
 from tqdm import tqdm
 
 
@@ -116,7 +116,7 @@ class TetSolution:
 
     #honestly have no idea which class this shoud be in
     def add_overlay(self, tetOverlay):
-        return self.field.addOverlay(tetOverlay.overlay)
+        return self.field.add_overlay(tetOverlay.overlay)
 
     def get_remaining_pieces(self):
         """Takes a piece sequence and returns an sfinder piece selector containing the missing pieces + *p7"""
@@ -143,6 +143,12 @@ class TetSetup:
         self.PC_rate = 0.00
         #self.depth?
 
+    def get_fumen(self, comment):
+        """Encode setup's field as a fumen diagram for inputting to sfinder."""
+        fixed_colors = [[[0, 8, 1, 3][b] for b in row]
+                        for row in self.solution.field.field]
+        return fumen.encode(fixed_colors, comment=comment)
+
     def add_continuations(self, setups):
         #print("Adding %d continations" % len(setups))
         if setups is not None and len(setups) > 0:
@@ -160,7 +166,7 @@ class TetSetup:
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
             self.continuations = list(
-                filter(lambda cont: cont.findPCs(sf),
+                filter(lambda cont: cont.find_PCs(sf),
                        tqdm(self.continuations, unit="PC")))
             if len(self.continuations) == 0:
                 # no PCs found
