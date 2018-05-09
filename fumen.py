@@ -24,10 +24,8 @@ def data_to_field(field_data):
         raise ValueError("Field is blank.")
     stripped = field[start:23]  # strip blank top rows and blank bottom row
     stripped.reverse()  # TetField stores rows in reverse order
-    return [[1 if b > 0 else 0 for b in row] for row in stripped]
-    """ return "\n".join([
-        "".join(map(lambda b: "X" if b > 0 else "_", row)) for row in stripped
-    ]) """
+    return stripped
+    #return [[1 if b > 0 else 0 for b in row] for row in stripped] # this strips colors, should be optional
 
 
 def decode(fumen_str):
@@ -36,7 +34,11 @@ def decode(fumen_str):
 
     enc_data = fumen_str[5:]
     # need to strip ?, no clear reason why fumen even includes them (backwards compatibility maybe?)
-    data = [ENC_TABLE.index(c) for c in enc_data.replace("?", "")]
+    try:
+        data = [ENC_TABLE.index(c) for c in enc_data.replace("?", "")]
+    except:
+        raise ValueError("Invalid character in fumen string.")
+
     i = 0  # data pointer
 
     field = [0] * FIELD_BLOCKS
@@ -83,82 +85,92 @@ def decode(fumen_str):
     return (data_to_field(field), comment)
 
 
-def encode(field, comment=None):
+def encode(frames):
     """Encode a fumen diagram with optional comment.
     
+    Frames is a list of tuples of (field, comment), for no comment comment should be an empty string.
     Field is in list form, should be converted to fumen colors first.
     Pieces and extra data stuff isn't supported.
     Only ASCII comments are supported for now. (Could use urllib.parse.quote to simulate escape, but it's not one-to-one.)
     Comment must be less than 4096 characters.
     """
 
-    frame = [0] * FIELD_BLOCKS
-    # add field from bottom->top into blank frame
-    for y, row in enumerate(field):
-        for x in range(10):
-            frame[((22 - y) * 10) + x] = row[x]
-
-    # fumen encoding starts here
     data = []
-    for i in range(FIELD_BLOCKS):
-        frame[i] += 8
+    prev_comment = ""
+    ct_flag = 1  # used to output ct flag ("Guideline" checkbox for colors) on the first frame only
+    prev_frame = [0] * FIELD_BLOCKS
 
-    # simple run-length encoding for field-data
-    repeat_count = 0
-    for j in range(FIELD_BLOCKS - 1):
-        repeat_count += 1
-        if frame[j] != frame[j + 1]:
-            val = (frame[j] * FIELD_BLOCKS) + (repeat_count - 1)
-            data.append(val % 64)
-            val = val // 64
-            data.append(val % 64)
-            repeat_count = 0
-    # output final block
-    val = (frame[FIELD_BLOCKS - 1] * FIELD_BLOCKS) + (repeat_count)
-    data.append(val % 64)
-    val = val // 64
-    data.append(val % 64)
-    #ignore check for blank frame/field repeat here
+    for field, comment in frames:
+        new_frame = [0] * FIELD_BLOCKS
+        # add field from bottom->top into blank frame
+        for y, row in enumerate(field):
+            for x in range(10):
+                new_frame[((22 - y) * 10) + x] = row[x]
 
-    # piece/data output, only thing I implement here is comment flag + "ct" flag (Guideline colors)
-    val = 1 if comment is not None else 0
-    val = 128 * FIELD_BLOCKS * ((val * 2) + 1)
-    data.append(val % 64)
-    val = val // 64
-    data.append(val % 64)
-    val = val // 64
-    data.append(val % 64)
+        # fumen encoding starts here
+        frame = [0] * FIELD_BLOCKS
+        for i in range(FIELD_BLOCKS):
+            frame[i] += new_frame[i] + 8 - prev_frame[i]
 
-    if comment is not None:
-        comment_str = quote(comment[:4096])
-        comment_len = len(comment_str)
+        # simple run-length encoding for field-data
+        repeat_count = 0
+        for j in range(FIELD_BLOCKS - 1):
+            repeat_count += 1
+            if frame[j] != frame[j + 1]:
+                val = (frame[j] * FIELD_BLOCKS) + (repeat_count - 1)
+                data.append(val % 64)
+                val = val // 64
+                data.append(val % 64)
+                repeat_count = 0
+        # output final block
+        val = (frame[FIELD_BLOCKS - 1] * FIELD_BLOCKS) + (repeat_count)
+        data.append(val % 64)
+        val = val // 64
+        data.append(val % 64)
+        #ignore check for blank frame/field repeat here
 
-        comment_data = [ASC_TABLE.index(c) for c in comment_str]
-        # pad data if necessary
-        if (comment_len % 4) > 0:
-            comment_data.extend([0] * (4 - (comment_len % 4)))
-
-        # output length of comment
-        val = comment_len
+        # piece/data output, only thing I implement here is comment flag + "ct" flag (Guideline colors)
+        val = 1 if comment != prev_comment else 0
+        val = 128 * FIELD_BLOCKS * ((val * 2) + ct_flag)
+        ct_flag = 0  # should only be set on the first frame
+        data.append(val % 64)
+        val = val // 64
         data.append(val % 64)
         val = val // 64
         data.append(val % 64)
 
-        # every 4 chars becomes 5 bytes (4 * 96 chars in ASCII table = 5 * 64)
-        for i in range(0, comment_len, 4):
-            val = comment_data[i]
-            val += comment_data[i + 1] * 96
-            val += comment_data[i + 2] * 9216
-            val += comment_data[i + 3] * 884736
+        if comment != prev_comment:
+            comment_str = quote(comment[:4096])
+            comment_len = len(comment_str)
+
+            comment_data = [ASC_TABLE.index(c) for c in comment_str]
+            # pad data if necessary
+            if (comment_len % 4) > 0:
+                comment_data.extend([0] * (4 - (comment_len % 4)))
+
+            # output length of comment
+            val = comment_len
             data.append(val % 64)
             val = val // 64
             data.append(val % 64)
-            val = val // 64
-            data.append(val % 64)
-            val = val // 64
-            data.append(val % 64)
-            val = val // 64
-            data.append(val % 64)
+
+            # every 4 chars becomes 5 bytes (4 * 96 chars in ASCII table = 5 * 64)
+            for i in range(0, comment_len, 4):
+                val = comment_data[i]
+                val += comment_data[i + 1] * 96
+                val += comment_data[i + 2] * 9216
+                val += comment_data[i + 3] * 884736
+                data.append(val % 64)
+                val = val // 64
+                data.append(val % 64)
+                val = val // 64
+                data.append(val % 64)
+                val = val // 64
+                data.append(val % 64)
+                val = val // 64
+                data.append(val % 64)
+        prev_frame = new_frame
+        prev_comment = comment
 
     encode_str = "v115@"
     for i, output_byte in enumerate(data):

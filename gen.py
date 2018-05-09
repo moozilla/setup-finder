@@ -58,4 +58,4 @@ def output_fumen(field, comment="-m o -f i -p [^T]!"):
     """Fix colors and add default sfinder args as comment."""
     # translate my field diagram into solid = gray, fill = I, margin = O
     fixed_colors = [[[0, 8, 1, 3][b] for b in row] for row in field]
-    return fumen.encode(fixed_colors, comment=comment)
+    return fumen.encode([(fixed_colors, comment)])
