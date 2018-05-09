@@ -34,6 +34,7 @@ class TetField:
                 self.field.insert(0, row)
         if from_list:
             self.field = [[1 if b > 0 else 0 for b in row]
+                          for row in from_list]  # colors -> 1s and 0s
             self.height = len(self.field)
 
     def tostring(self):
@@ -121,7 +122,7 @@ class TetSolution:
     def get_remaining_pieces(self):
         """Takes a piece sequence and returns an sfinder piece selector containing the missing pieces + *p7"""
         nextPieces = "*p7"
-        remaining = ','.join(set("LJSZIOT") - set(self.sequence))
+        remaining = ','.join([p for p in "LJSZIOT" if p not in self.sequence])
         if remaining:
             nextPieces = remaining + "," + nextPieces
         return nextPieces
@@ -147,7 +148,7 @@ class TetSetup:
         """Encode setup's field as a fumen diagram for inputting to sfinder."""
         fixed_colors = [[[0, 8, 1, 3][b] for b in row]
                         for row in self.solution.field.field]
-        return fumen.encode(fixed_colors, comment=comment)
+        return fumen.encode([(fixed_colors, comment)])
 
     def add_continuations(self, setups):
         #print("Adding %d continations" % len(setups))
@@ -158,7 +159,7 @@ class TetSetup:
         else:
             return False
 
-    def find_PCs(self, sf):
+    def find_PCs(self, sf, height):
         """Find PCs for all continuations, then figure out overall PC rate.
         
         Returns true if overall PC rate is > 0.00, for filtering.
@@ -166,7 +167,7 @@ class TetSetup:
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
             self.continuations = list(
-                filter(lambda cont: cont.find_PCs(sf),
+                filter(lambda cont: cont.find_PCs(sf, height),
                        tqdm(self.continuations, unit="PC")))
             if len(self.continuations) == 0:
                 # no PCs found
@@ -176,8 +177,8 @@ class TetSetup:
         else:
             self.PC_rate = float(
                 sf.percent(self.solution.fumen,
-                           self.solution.get_remaining_pieces(),
-                           str(self.solution.field.height), True))
+                           self.solution.get_remaining_pieces(), str(height),
+                           True))
         return self.PC_rate > 0.00
 
     def tostring(self, cont=False):
