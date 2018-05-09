@@ -75,8 +75,8 @@ class SFinder:
                 print("Error: Setup didn't find any solutions\n\n" + output)
                 return None
         except subprocess.CalledProcessError as e:
-            print("Sfinder Error: %s" % re.search(r"Message: (.+)\n",
-                                                  e.output).group(1))
+            raise RuntimeError("Sfinder Error: %s" % re.search(
+                r"Message: (.+)\n", e.output).group(1))
 
     def percent(self, fumen=None, pieces=None, height=None, use_cache=False):
         """Run sfinder percent command, return overall success rate (just the number)"""
@@ -108,7 +108,8 @@ class SFinder:
                 raise RuntimeError(
                     "Couldn't find percentage in sfinder output.\n\n" + output)
         except subprocess.CalledProcessError as e:
-            print(e.output.splitlines()[2])
+            raise RuntimeError("Sfinder Error: %s" % re.search(
+                r"Message: (.+)\n", e.output).group(1))
 
     def setInputTxt(self, field_diagram):
         """Set input.txt to a field diagram (string)."""
