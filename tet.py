@@ -33,7 +33,7 @@ class TetField:
                 # insert row at top, because diagram is top->bottom but field bottom is y=0
                 self.field.insert(0, row)
         if from_list:
-            self.field = from_list
+            self.field = [[1 if b > 0 else 0 for b in row]
             self.height = len(self.field)
 
     def tostring(self):

@@ -92,9 +92,9 @@ def find_TSS_Tetris_PC():
             "Bag 1: Found %d total valid TSS setups" % len(bag1_sols), end=' ')
         print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
         print("Bag 2: Finding continuations with overlay...")
-        overlay = TetOverlay("""*........_
-                                *........_
-                                *........_
+        overlay = TetOverlay("""........._
+                                ........._
+                                ........._
                                 *********_
                                 *********_
                                 *********_
@@ -109,9 +109,10 @@ def find_TSS_Tetris_PC():
         print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
 
         print("Bag 3: Finding PCs...")
+        # manually added height here - I should calculate this from cleared rows and be able to specify that I'm going for an 8 high
         pc_setups = list(
-            filter(lambda setup: setup.find_PCs(sf), tqdm(
-                setups, unit="setup")))
+            filter(lambda setup: setup.find_PCs(sf, 7),
+                   tqdm(setups, unit="setup")))
         print(
             "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
             % len(pc_setups),
