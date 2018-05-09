@@ -174,6 +174,10 @@ class TetSetup:
                 self.PC_rate = 0.00
                 return False
             self.PC_rate = max([cont.PC_rate for cont in self.continuations])
+            # if best PC is 100%, count number of 100%s for sorting (make sure to adjust for this if it is ever displayed)
+            if self.PC_rate == 100.00:
+                self.PC_rate += [cont.PC_rate for cont in self.continuations
+                                 ].count(100.00) - 1
         else:
             self.PC_rate = float(
                 sf.percent(self.solution.fumen,
