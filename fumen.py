@@ -86,13 +86,11 @@ def decode(fumen_str):
 
 
 def encode(frames):
-    """Encode a fumen diagram with optional comment.
+    """Encode a fumen diagram.
     
     Frames is a list of tuples of (field, comment), for no comment comment should be an empty string.
     Field is in list form, should be converted to fumen colors first.
-    Pieces and extra data stuff isn't supported.
-    Only ASCII comments are supported for now. (Could use urllib.parse.quote to simulate escape, but it's not one-to-one.)
-    Comment must be less than 4096 characters.
+    Pieces and extra data stuff isn't supported. Comments must be less than 4096 characters.
     """
 
     data = []
@@ -140,6 +138,7 @@ def encode(frames):
         data.append(val % 64)
 
         if comment != prev_comment:
+            #quote similulates escape() in javascript, but output is not one-to-one (since escape is depreciated)
             comment_str = quote(comment[:4096])
             comment_len = len(comment_str)
 
