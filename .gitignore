@@ -4,3 +4,4 @@ solution-finder-0.511/
 __pycache__/
 cache/*
 output.txt
+output/*

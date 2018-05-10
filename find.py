@@ -7,7 +7,7 @@ Using: solution-finder-0.511
 import time
 from sfinder import SFinder
 from tet import TetOverlay, TetSetup
-import gen
+import gen, output
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 
@@ -66,6 +66,7 @@ def find_TSS_Tetris_PC():
     weighted based on what piece sequences they can be stacked by (or the minimum number of setups to learn to get
     the desired success rate.)
     """
+    pc_cutoff = 80.0
     with warnings.catch_warnings():
         warnings.simplefilter(
             "ignore",
@@ -109,22 +110,22 @@ def find_TSS_Tetris_PC():
         print("(Elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
 
         print("Bag 3: Finding PCs...")
-        # manually added height here - I should calculate this from cleared rows and be able to specify that I'm going for an 8 high
+        # manually added height here - I should calculate this from cleared rows and be able to specify that I'm going for an 8 highpi
         pc_setups = list(
-            filter(lambda setup: setup.find_PCs(sf, 7),
+            filter(lambda setup: setup.find_PCs(sf, 7, pc_cutoff),
                    tqdm(setups, unit="setup")))
         print(
-            "Bag 3: Found %d setups with PC success greater than 0%%, outputting to output.txt"
-            % len(pc_setups),
+            "Bag 3: Found %d setups with PC success greater than %.2f%%, outputting to output.html"
+            % (len(pc_setups), pc_cutoff),
             end=' ')
         print("(Total elapsed time: %.2fsec)" %
               (time.perf_counter() - timer_start))
 
-    with open("output.txt", "w+") as output_file:
-        for setup in sorted(
-                pc_setups, key=(lambda s: s.PC_rate), reverse=True):
-            output_file.write(setup.tostring())
-            output_file.write("\n\n")
+    # dominate has problems rendering → or I would use that, need to find workaround
+    print("Generating output file...")
+    output.output_results(
+        sorted(pc_setups, key=(lambda s: s.PC_rate), reverse=True),
+        "Row 1 TSS2 -> Tetris -> PC", pc_cutoff)
 
 
 def main():
