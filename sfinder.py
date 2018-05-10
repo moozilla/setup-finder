@@ -83,7 +83,7 @@ class SFinder:
         
         Note: Doesn't parse sequences possible for each fumen, could add this later. (Might want to change to parsing csv for that?)"""
         if use_cache == True and fumen is not None:
-            cached_result = cache.get_solutions(fumen)
+            cached_result = cache.get_solutions("p" + pieces + fumen)
             if cached_result is not None:
                 return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "path"]
@@ -118,7 +118,7 @@ class SFinder:
                     solutions.append(
                         TetSolution(TetField(from_list=field), fumen_str, seq))
                 if use_cache:
-                    cache.save_solutions(fumen, solutions)
+                    cache.save_solutions("p" + pieces + fumen, solutions)
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception
