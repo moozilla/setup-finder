@@ -1,10 +1,10 @@
 """Sfinder module, a wrapper for working with knewjade's solution-finder program."""
 
-import re, subprocess, tet
+import os, re, subprocess, tet
 from lxml import html, etree
-from os import getcwd
 from tet import TetSolution, TetField
 import cache
+from fumen import decode
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -15,7 +15,7 @@ class SFinder:
         if working_dir is not None:
             self.working_dir = working_dir
         else:
-            self.working_dir = "%s\\%s" % (getcwd(), SFINDER_VER)
+            self.working_dir = "%s\\%s" % (os.getcwd(), SFINDER_VER)
 
     def setup(self,
               fumen=None,
@@ -78,6 +78,56 @@ class SFinder:
             raise RuntimeError("Sfinder Error: %s" % re.search(
                 r"Message: (.+)\n", e.output).group(1))
 
+    def path(self, fumen=None, pieces=None, height=None, use_cache=False):
+        """Run sfinder path command, returns a list of solution fumens.
+        
+        Note: Doesn't parse sequences possible for each fumen, could add this later. (Might want to change to parsing csv for that?)"""
+        if use_cache == True and fumen is not None:
+            cached_result = cache.get_solutions(fumen)
+            if cached_result is not None:
+                return cached_result
+        args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "path"]
+        if fumen:
+            args.extend(["-t", fumen])
+        if pieces:
+            args.extend(["-p", pieces])
+        if height:
+            args.extend(["-c", height])
+        try:
+            output = subprocess.check_output(
+                args,
+                cwd=self.working_dir,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True)
+            match = re.search(r"Found path \[minimal\] = (\d+)", output)
+            if match:
+                # maybe should have an option for which path result it uses? but going with minimal for now
+                with open(
+                        self.working_dir + "\\output\\path_minimal.html",
+                        "r",
+                        encoding="utf-8") as f:
+                    setupHtml = f.read()
+                tree = html.fromstring(setupHtml)
+                divs = tree.xpath("//section//div")
+                solutions = []
+                for div in divs:
+                    fumen_str = div[0].attrib["href"].split("fumen.zui.jp/?")[
+                        1]
+                    field, seq = decode(fumen_str)
+                    # actually kind of silly saving field at all considering it's just cleared lines, but whatever
+                    solutions.append(
+                        TetSolution(TetField(from_list=field), fumen_str, seq))
+                if use_cache:
+                    cache.save_solutions(fumen, solutions)
+                return solutions
+            else:
+                #only happens if it doesnt report 0 solutions - so never? maybe should raise exception
+                print("Error: Path didn't find any solutions\n\n" + output)
+                return None
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Sfinder Error: %s" % re.search(
+                r"Message: (.+)\n", e.output).group(1))
+
     def percent(self, fumen=None, pieces=None, height=None, use_cache=False):
         """Run sfinder percent command, return overall success rate (just the number)"""
         if use_cache == True and fumen is not None and pieces is not None:
@@ -107,6 +157,37 @@ class SFinder:
             else:
                 raise RuntimeError(
                     "Couldn't find percentage in sfinder output.\n\n" + output)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Sfinder Error: %s" % re.search(
+                r"Message: (.+)\n", e.output).group(1))
+
+    def fig_png(self, fumen, dest, height):
+        """Generate an image for a fumen using 'util fig' then move it to destination."""
+        args = ["java", "-jar", "sfinder.jar", "util", "fig"]
+        args.extend(["-t", fumen])
+        # output to png, no hold/next, end after 1st frame (to only make 1 image)
+        args.extend(["-F", "png", "-f", "no", "-e", "1"])
+        args.extend(["-l", height])
+        try:
+            output = subprocess.check_output(
+                args,
+                cwd=self.working_dir,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True)
+            match = re.search(r"\.\.\.\. Output to (.+\\\d+_\d+)", output)
+            if match:
+                img_dir = match.group(1)
+                #remove file if it exists
+                try:
+                    os.remove(dest)
+                except FileNotFoundError:
+                    pass
+                os.rename(img_dir + "\\fig_001.png", dest)
+                #note: will fail if dir isn't empty, which is should always be after file is moved
+                os.rmdir(img_dir)
+            else:
+                raise RuntimeError(
+                    "Couldn't find image path in sfinder output.\n\n" + output)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Sfinder Error: %s" % re.search(
                 r"Message: (.+)\n", e.output).group(1))
