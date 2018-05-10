@@ -5,6 +5,7 @@ from lxml import html, etree
 from tet import TetSolution, TetField
 import cache
 from fumen import decode
+import base64  #for image generation
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -161,8 +162,8 @@ class SFinder:
             raise RuntimeError("Sfinder Error: %s" % re.search(
                 r"Message: (.+)\n", e.output).group(1))
 
-    def fig_png(self, fumen, dest, height):
-        """Generate an image for a fumen using 'util fig' then move it to destination."""
+    def fig_png(self, fumen, height):
+        """Generate an image for a fumen using 'util fig' and return base64 encode data_url."""
         args = ["java", "-jar", "sfinder.jar", "util", "fig"]
         args.extend(["-t", fumen])
         # output to png, no hold/next, end after 1st frame (to only make 1 image)
@@ -177,14 +178,13 @@ class SFinder:
             match = re.search(r"\.\.\.\. Output to (.+\\\d+_\d+)", output)
             if match:
                 img_dir = match.group(1)
-                #remove file if it exists
-                try:
-                    os.remove(dest)
-                except FileNotFoundError:
-                    pass
-                os.rename(img_dir + "\\fig_001.png", dest)
-                #note: will fail if dir isn't empty, which is should always be after file is moved
+                img_filename = img_dir + "\\fig_001.png"
+                img_data_url = "data:image/png;base64,"
+                img_data_url += base64.b64encode(
+                    open(img_filename, "rb").read()).decode()
+                os.remove(img_filename)
                 os.rmdir(img_dir)
+                return img_data_url
             else:
                 raise RuntimeError(
                     "Couldn't find image path in sfinder output.\n\n" + output)

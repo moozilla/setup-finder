@@ -32,18 +32,9 @@ def output_results(setups, title, cutoff):
                             height=pc_height,
                             use_cache=True)[0]
 
-                        img_dest = "%s\\setup%d_fig1.png" % (working_dir, i)
-                        sf.fig_png(setup.solution.fumen, img_dest, pc_height)
-                        img(src=img_dest)
-
-                        img_dest = "%s\\setup%d_fig2.png" % (working_dir, i)
-                        sf.fig_png(best_continuation.fumen, img_dest,
-                                   pc_height)
-                        img(src=img_dest)
-
-                        img_dest = "%s\\setup%d_fig3.png" % (working_dir, i)
-                        sf.fig_png(best_pc.fumen, img_dest, pc_height)
-                        img(src=img_dest)
+                        img(src=sf.fig_png(setup.solution.fumen, pc_height))
+                        img(src=sf.fig_png(best_continuation.fumen, pc_height))
+                        img(src=sf.fig_png(best_pc.fumen, pc_height))
                     with p():
                         text("Best continuation: ")
                         b("%.2f%%" % setup.continuations[0].PC_rate)
