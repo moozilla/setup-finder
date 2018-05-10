@@ -159,20 +159,25 @@ class TetSetup:
         else:
             return False
 
-    def find_PCs(self, sf, height):
+    def find_PCs(self, sf, height, cutoff):
         """Find PCs for all continuations, then figure out overall PC rate.
         
-        Returns true if overall PC rate is > 0.00, for filtering.
+        Returns true if overall PC rate is >= cutoff, for filtering.
         """
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
             self.continuations = list(
-                filter(lambda cont: cont.find_PCs(sf, height),
+                filter(lambda cont: cont.find_PCs(sf, height, cutoff),
                        tqdm(self.continuations, unit="PC")))
             if len(self.continuations) == 0:
                 # no PCs found
                 self.PC_rate = 0.00
                 return False
+            # sort continuations by PC rate (descending)
+            self.continuations = sorted(
+                self.continuations,
+                key=(lambda cont: cont.PC_rate),
+                reverse=True)
             self.PC_rate = max([cont.PC_rate for cont in self.continuations])
             # if best PC is 100%, count number of 100%s for sorting (make sure to adjust for this if it is ever displayed)
             if self.PC_rate == 100.00:
@@ -183,17 +188,26 @@ class TetSetup:
                 sf.percent(self.solution.fumen,
                            self.solution.get_remaining_pieces(), str(height),
                            True))
-        return self.PC_rate > 0.00
+        return self.PC_rate >= cutoff
 
     def tostring(self, cont=False):
         """Pretty print for outputing to results txt file."""
         ret = self.solution.tostring()
         if len(self.continuations) > 0:
             ret += "Continuations:\n"
-            for cont in sorted(
-                    self.continuations,
-                    key=(lambda cont: cont.PC_rate),
-                    reverse=True):
+            for cont in self.continuations:
                 # todo: i think i need to recurse all the way down for 4bag PCs, also don't display % for non-PC results
                 ret += "%s (%.2f%%)\n" % (cont.solution.fumen, cont.PC_rate)
         return ret
+
+    def to_fumen(self):
+        """Output setup + continuations in one fumen."""
+        if len(self.continuations) > 0:
+            frames = [fumen.decode(self.solution.fumen)]
+            for cont in self.continuations:
+                field, _ = fumen.decode(cont.solution.fumen)
+                frames.append((field, "%.2f%%" % cont.PC_rate))
+            #print(frames)
+            return fumen.encode(frames)
+        else:
+            return self.solution.fumen
