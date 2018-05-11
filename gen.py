@@ -8,6 +8,9 @@ SHAPE_TSPIN = list(reversed([
     [0, 0, 0],
     [2, 0, 2]])) # yapf: disable
 
+SHAPE_TETRIS = [[0], [0], [0], [0]]
+
+
 def prettify(field):
     reversed_field = field
     reversed_field.reverse()
@@ -28,14 +31,11 @@ def generate_setup(field_height, cleared_rows, shape, shape_x, shape_y):
         field[y] = [2] * 10
 
     # insert shape
-    for y in range(3):  # field goes from bottom->top
-        for x in range(3):
+    shape_width = len(shape[0])
+    shape_height = len(shape)
+    for y in range(shape_height):  # field goes from bottom->top
+        for x in range(shape_width):
             field[shape_y + y][shape_x + x] = shape[y][x]
-
-    # make opening for dropping T in - todo: this will need to be different for shapes w/ overhang (eg. TST)
-    for y in range(shape_y + 3, field_height):
-        field[y][shape_x] = 0
-        field[y][shape_x + 1] = 0
 
     return field
 
@@ -43,15 +43,37 @@ def generate_setup(field_height, cleared_rows, shape, shape_x, shape_y):
 # note: all of these are "left-facing" in that the opening is on the left, the overhang on the right
 #       if using for overlays (not 1st bag), you may need to mirror the generated setup to find right-facing spins
 def generate_TSS1(field_height, x, y):
-    return generate_setup(field_height, [y - 1], SHAPE_TSPIN, x - 1, y - 1)
+    field = generate_setup(field_height, [y - 1], SHAPE_TSPIN, x - 1, y - 1)
+    # add opening for dropping in T piece
+    for y in range(y + 2, field_height):
+        field[y][x - 1] = 0
+        field[y][x] = 0
+    return field
 
 
 def generate_TSS2(field_height, x, y):
-    return generate_setup(field_height, [y], SHAPE_TSPIN, x - 1, y - 1)
+    field = generate_setup(field_height, [y], SHAPE_TSPIN, x - 1, y - 1)
+    for y in range(y + 2, field_height):
+        field[y][x - 1] = 0
+        field[y][x] = 0
+    return field
 
 
 def generate_TSD(field_height, x, y):
-    return generate_setup(field_height, [y - 1, y], SHAPE_TSPIN, x - 1, y - 1)
+    field = generate_setup(field_height, [y - 1, y], SHAPE_TSPIN, x - 1, y - 1)
+    for y in range(y + 2, field_height):
+        field[y][x - 1] = 0
+        field[y][x] = 0
+    return field
+
+
+def generate_Tetris(field_height, x, y):
+    field = generate_setup(field_height, list(range(y, y + 4)), SHAPE_TETRIS,
+                           x, y)
+    # add opening for dropping in I piece (should there be an option to disable this?)
+    for y in range(y + 4, field_height):
+        field[y][x] = 0
+    return field
 
 
 def output_fumen(field, comment="-m o -f i -p [^T]!"):
