@@ -6,10 +6,11 @@ Using: solution-finder-0.511
 
 import time
 from sfinder import SFinder
-from tet import TetOverlay, TetSetup
+from tet import TetOverlay, TetSetup, TetField
 import gen, output
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
+from copy import deepcopy
 
 
 def is_TSS(solution, x, y, vertical_T=False):
@@ -76,17 +77,22 @@ def find_TSS_Tetris_PC():
         print("Working dir: %s" % sf.working_dir)
         timer_start = time.perf_counter()
 
-        print("Bag 1: Finding row 1 TSS2 setups...")
+        print("Bag 1: Finding row 2 TSS1 setups...")
         bag1_sols = []
         for x in range(1, 8):  #only 1-7 are possible
-            tss_fumen = gen.output_fumen(gen.generate_TSS2(6, x, 1))
+            tss_fumen = gen.output_fumen(gen.generate_TSS1(6, x, 2))
             tss_sols = sf.setup(fumen=tss_fumen, use_cache=True)
-            print("  Found %d solutions with possible TSS at %d, 1" %
+            print("  Found %d solutions with possible TSS at %d, 2" %
                   (len(tss_sols), x))
+            #deepcopy because issTSS changes sols, want a copy to spin T differently with
+            tss_sols_copy = deepcopy(tss_sols)
             valid_sols = list(
-                filter(lambda sol: is_TSS(sol, x, 1, vertical_T=False),
+                filter(lambda sol: is_TSS(sol, x, 2, vertical_T=False),
                        tss_sols))
-            print("  Found %d valid TSS setups at %d, 1" % (len(valid_sols),
+            valid_sols.extend(
+                filter(lambda sol: is_TSS(sol, x, 2, vertical_T=True),
+                       tss_sols_copy))
+            print("  Found %d valid TSS setups at %d, 2" % (len(valid_sols),
                                                             x))
             bag1_sols.extend(valid_sols)
         print(
@@ -128,8 +134,175 @@ def find_TSS_Tetris_PC():
         "Row 1 TSS2 -> Tetris -> PC", pc_cutoff)
 
 
+def get_TSS_continuations(field,
+                          rows,
+                          cols,
+                          bag_filter,
+                          TSS1=False,
+                          TSS2=False):
+    """field is a TetField"""
+    sf = SFinder()
+    solutions = []
+    for row in rows:
+        for col in cols:
+            # make copies to avoid mutating field
+            if TSS1:
+                tss1_field = deepcopy(field)
+                # 6 is a reasonable height for blank field setups (7+ should be impossible in one bag)
+                # may want to have an option for different heights for finding tspins in other bags (prob pass an arg)
+                tss1_field.add_overlay(gen.generate_TSS1(6, col, row))
+                tss1_sols = sf.setup(
+                    fumen=gen.output_fumen(tss1_field.field), use_cache=True)
+                # copy so we can try both flat and vertical T
+                tss1_sols_copy = deepcopy(tss1_sols)
+            if TSS2:
+                tss2_field = deepcopy(field)
+                tss2_field.add_overlay(gen.generate_TSS2(6, col, row))
+                tss2_sols = sf.setup(
+                    fumen=gen.output_fumen(tss2_field.field), use_cache=True)
+
+            valid_sols = []
+            if bag_filter == "isTSS-any":
+                # check if setup is actually a TSS (with all 7 pieces)
+                if TSS1:
+                    valid_sols.extend(
+                        filter(lambda sol: is_TSS(sol, col, row, vertical_T=False),
+                            tss1_sols))
+                    valid_sols.extend(
+                        filter(
+                            lambda sol: is_TSS(sol, col, row, vertical_T=True),
+                            tss1_sols_copy))
+                if TSS2:
+                    valid_sols.extend(
+                        filter(lambda sol: is_TSS(sol, col, row, vertical_T=False),
+                            tss2_sols))
+            else:
+                if TSS1:
+                    valid_sols.extend(tss1_sols)
+                if TSS2:
+                    valid_sols.extend(tss2_sols)
+            #if VERBOSE (todo: add something like this?)
+            #print("  Found %d valid TSS setups at %d,%d" % (len(valid_sols),
+            #                                                col, row))
+            solutions.extend(valid_sols)
+    return solutions
+
+
+def get_Tetris_continuations(field, row, cols):
+    sf = SFinder()
+    solutions = []
+    for col in cols:
+        # make copies to avoid mutating field
+        tet_field = deepcopy(field)
+        # this height should be passed in (from input file?)
+        tet_overlay = gen.generate_Tetris(7, col, row)
+        if tet_field.add_overlay(tet_overlay):
+            tet_sols = sf.setup(
+                fumen=gen.output_fumen(
+                    tet_field.field, comment="-m o -f i -p *p7"),
+                use_cache=True)
+            solutions.extend(tet_sols)
+    return solutions
+
+
+def setups_from_input():
+    # raise exception if input file not found? need a standard way of error handling for humans
+    # allow changing of working-dir?
+    timer_start = time.perf_counter()
+    sf = SFinder()  # really should get rid of this
+    pc_height = None  # need to refactor this (all the arg stuff)
+    pc_cutoff = None
+    with open("input.txt", "r") as input_file:
+        bags = input_file.read().splitlines()
+    setups = []  # do i need to initalize this?
+    title = ""  #title/heading of output.html
+    for i, bag in enumerate(bags):
+        bag_args = bag.split(' ')
+        setup_type = bag_args.pop(0)
+        # defaults
+        bag_rows = []
+        bag_cols = []
+        bag_filter = None
+        for arg in bag_args:
+            if arg[:3] == "col":
+                if arg[4:] == "any":
+                    # default for tspin, should be 0-9 for tetris
+                    bag_cols = list(range(1, 8))
+                else:
+                    bag_cols = list(map(int, arg[4:].split(',')))
+            if arg[:3] == "row":
+                bag_rows = list(map(int, arg[4:].split(',')))
+            if arg[:6] == "filter":
+                bag_filter = arg[7:]
+            if arg[:6] == "height":
+                pc_height = int(arg[7:])
+            if arg[:6] == "cutoff":
+                pc_cutoff = float(arg[7:])
+
+        if setup_type == "TSS-any":
+            if i == 0:
+                print("Bag %d: Finding TSS initial bag setups..." % i)
+                title = "TSS"
+                setups = list(
+                    map(TetSetup,
+                        get_TSS_continuations(
+                            TetField(from_list=[]),
+                            bag_rows,
+                            bag_cols,
+                            bag_filter,
+                            True,
+                            True)))
+            else:
+                raise NotImplementedError(
+                    "fix this - tspins only work for 1st bag")
+        elif setup_type == "TSS1":
+            raise NotImplementedError("Bag %d: %s not yet implemented" %
+                                      (i, setup_type))
+        elif setup_type == "TSS2":
+            raise NotImplementedError("Bag %d: %s not yet implemented" %
+                                      (i, setup_type))
+        elif setup_type == "TSD":
+            raise NotImplementedError("Bag %d: %s not yet implemented" %
+                                      (i, setup_type))
+        elif setup_type == "Tetris":
+            if i > 0:
+                print("Bag %d: Finding Tetris continuations..." % i)
+                title += " -> Tetris"
+                for setup in setups:
+                    # only supports 1 row for tetrises
+                    conts = get_Tetris_continuations(setup.solution.field,
+                                                     bag_rows[0], bag_cols)
+                    setup.add_continuations(conts)
+            else:
+                raise NotImplementedError(
+                    "Initial bag Tetris not implemented.")
+        elif setup_type == "PC":
+            print("Bag %d: Finding PCs..." % i)
+            title += " -> PC"
+            setups = list(
+                filter(lambda setup: setup.find_PCs(sf, pc_height, pc_cutoff),
+                       tqdm(setups, unit="setup")))
+            print("")  #newline so tqdm output isn't weird
+        else:
+            raise ValueError("Unknown setup type '%s'." % setup_type)
+
+        if i > 0:
+            # remove setups with no continuations
+            setups = [
+                setup for setup in setups if len(setup.continuations) > 0
+            ]
+        print("Bag %d: Found %d valid setups" % (i, len(setups)))
+    print("Generating output file...")
+    output.output_results(
+        sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
+        pc_cutoff)
+    print("Done.", end=' ')
+    print("(Total elapsed time: %.2fsec)" %
+          (time.perf_counter() - timer_start))
+
+
 def main():
-    find_TSS_Tetris_PC()
+    setups_from_input()
 
 
 if __name__ == '__main__':

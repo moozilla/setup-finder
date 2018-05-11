@@ -21,7 +21,7 @@ class TetField:
         Note that in input, rows are NOT separated by newlines (html processing strips <br> elements).
         """
         self.clearedRows = 0  # keep track of cleared rows to figure out PC height
-        if from_string:
+        if from_string is not None:
             self.height = len(from_string) // 10
             self.field = []
             i = 0
@@ -32,7 +32,7 @@ class TetField:
                     i += 1
                 # insert row at top, because diagram is top->bottom but field bottom is y=0
                 self.field.insert(0, row)
-        if from_list:
+        if from_list is not None:
             self.field = [[1 if b > 0 else 0 for b in row]
                           for row in from_list]  # colors -> 1s and 0s
             self.height = len(self.field)
