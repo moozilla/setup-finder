@@ -11,7 +11,7 @@ import warnings
 working_dir = "%s\\%s" % (getcwd(), "output")
 
 
-def output_results(setups, title, cutoff):
+def output_results(setups, title, pc_cutoff, pc_height, img_height):
     sf = SFinder()
     with open("%s\\output.html" % working_dir, "w+") as output_file:
         d = document(title=title)
@@ -24,17 +24,18 @@ def output_results(setups, title, cutoff):
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
                     h2("Setup %d" % i)
                     with div():
-                        pc_height = "7"  # need to get img height programmatically somewhere
                         best_continuation = setup.continuations[0].solution
                         best_pc = sf.path(
-                            fumen=best_continuation.fumen,
+                            fumen=best_continuation.to_fumen(),
                             pieces=best_continuation.get_remaining_pieces(),
                             height=pc_height,
                             use_cache=True)[0]
 
-                        img(src=sf.fig_png(setup.solution.fumen, pc_height))
-                        img(src=sf.fig_png(best_continuation.fumen, pc_height))
-                        img(src=sf.fig_png(best_pc.fumen, pc_height))
+                        img(src=sf.fig_png(setup.solution.fumen, img_height))
+                        img(
+                            src=sf.fig_png(best_continuation.fumen,
+                                           img_height))
+                        img(src=sf.fig_png(best_pc.fumen, img_height))
                     with p():
                         text("Best continuation: ")
                         b("%.2f%%" % setup.continuations[0].PC_rate)
@@ -43,5 +44,5 @@ def output_results(setups, title, cutoff):
                             a("%d continuations" % len(setup.continuations),
                               href="http://fumen.zui.jp/?%s" %
                               setup.to_fumen()))
-                        text("with >%.2f%% PC success rate" % cutoff)
+                        text("with >%.2f%% PC success rate" % pc_cutoff)
         output_file.write(d.render())

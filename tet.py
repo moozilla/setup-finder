@@ -134,6 +134,12 @@ class TetSolution:
         #    ret += " (%s%%)" % self.PC_rate
         return ret
 
+    def to_fumen(self):
+        """Return a fumen with current field/seq (since field will be modified during T-spins, etc.)."""
+        fixed_colors = [[[0, 8, 1, 3][b] for b in row]
+                        for row in self.field.field]
+        return fumen.encode([(fixed_colors, self.sequence)])
+
 
 class TetSetup:
     """Collection of solutions filtered to fit a certain specification."""
@@ -184,10 +190,10 @@ class TetSetup:
                 self.PC_rate += [cont.PC_rate for cont in self.continuations
                                  ].count(100.00) - 1
         else:
+            # note: changing solution.fumen to solution.to_fumen() might invalidate old cache results
             self.PC_rate = float(
-                sf.percent(self.solution.fumen,
-                           self.solution.get_remaining_pieces(), str(height),
-                           True))
+                sf.percent(self.solution.to_fumen(),
+                           self.solution.get_remaining_pieces(), height, True))
         return self.PC_rate >= cutoff
 
     def tostring(self, cont=False):
