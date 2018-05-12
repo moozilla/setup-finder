@@ -13,7 +13,7 @@ To try out the current script, unzip solution-finder into setup-finder's folder 
 
 An image representing the best continuation for each bag is shown. For PCs an example of how to clear the PC with the highest success rate is shown (not necessarily the best method). To see all the continuations, click the **# continuations** link for a fumen diagram.
 
-Warning: the current demo for TSD→TSD→PC tests more than 10,000 Perfect Clears and takes ~1hr to run on my PC. Note that setup-finder saves every setup and PC result solution-finder finds, so if you stop in the middle of a calculation or want to regenerate a setup it will go much faster.
+Warning: the current demo for TSD→TSD→PC tests more than 10,000 Perfect Clears and takes ~1hr to run on my PC. Note that setup-finder saves every setup and PC result solution-finder finds, so if you stop in the middle of a calculation or want to regenerate a setup it will go much faster the next time (instantaneously if you re-run the same input).
 
 ## input.txt
 
