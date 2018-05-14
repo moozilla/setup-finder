@@ -172,9 +172,13 @@ class TetSetup:
         """
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
-            self.continuations = list(
-                filter(lambda cont: cont.find_PCs(sf, height, cutoff),
-                       tqdm(self.continuations, unit="PC")))
+            try:
+                self.continuations = list(
+                    filter(lambda cont: cont.find_PCs(sf, height, cutoff),
+                           tqdm(self.continuations, unit="PC")))
+            except:
+                print("Parent of problem cont: " + self.solution.tostring())
+                raise
             if len(self.continuations) == 0:
                 # no PCs found
                 self.PC_rate = 0.00
@@ -191,9 +195,14 @@ class TetSetup:
                                  ].count(100.00) - 1
         else:
             # note: changing solution.fumen to solution.to_fumen() might invalidate old cache results
-            self.PC_rate = float(
-                sf.percent(self.solution.to_fumen(),
-                           self.solution.get_remaining_pieces(), height, True))
+            try:
+                self.PC_rate = float(
+                    sf.percent(self.solution.to_fumen(),
+                               self.solution.get_remaining_pieces(), height,
+                               True))
+            except:
+                print("Problem cont: " + self.solution.tostring())
+                raise
         return self.PC_rate >= cutoff
 
     def tostring(self, cont=False):
