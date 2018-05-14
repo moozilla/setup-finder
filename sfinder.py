@@ -76,8 +76,12 @@ class SFinder:
                 print("Error: Setup didn't find any solutions\n\n" + output)
                 return None
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("Sfinder Error: %s" % re.search(
-                r"Message: (.+)\n", e.output).group(1))
+            if "Should specify equal to or more than" in e.output:
+                # not enough pieces to even try finding setups, return None
+                return None
+            else:
+                raise RuntimeError("Sfinder Error: %s" % re.search(
+                    r"Message: (.+)\n", e.output).group(1))
 
     def path(self, fumen=None, pieces=None, height=None, use_cache=False):
         """Run sfinder path command, returns a list of solution fumens.

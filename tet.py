@@ -48,13 +48,20 @@ class TetField:
             #str = row + "\n" + str  # display field top->bottom
         return "\n".join(rows)
 
-    def add_T(self, x, y, vertical=False):
+    def add_T(self, x, y, vertical=False, mirror=False):
         """Add a T piece to the field (x,y) marks center of piece. For now vertical Ts point right"""
         if vertical:
-            self.field[y + 1][x] = 1
-            self.field[y][x] = 1
-            self.field[y][x + 1] = 1
-            self.field[y - 1][x] = 1
+            #todo: fix this, this is really hacky
+            if mirror:
+                self.field[y + 1][x] = 1
+                self.field[y][x] = 1
+                self.field[y][x - 1] = 1
+                self.field[y - 1][x] = 1
+            else:
+                self.field[y + 1][x] = 1
+                self.field[y][x] = 1
+                self.field[y][x + 1] = 1
+                self.field[y - 1][x] = 1
         else:
             self.field[y][x - 1] = 1
             self.field[y][x] = 1

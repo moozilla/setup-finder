@@ -17,7 +17,6 @@ def is_TSS(solution, x, y, vertical_T=False):
     # for now, filter out solutions that use less than 6 pieces
     # (carrying over pieces into the next bag makes search space too large)
 
-    # find # pieces by taking len of sequence str (all fumens should have same length)
     if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
@@ -34,6 +33,17 @@ def is_TSD(solution, x, y):
         solution.field.add_T(x, y, False)  #flat T
         solution.sequence += "T"
         return solution.field.clearedRows == 2
+    else:
+        return False
+
+
+def is_TST(solution, x, y, mirror):
+    if len(solution.sequence) == 6:
+        #vertical T, flipped in comparison to TSS vertical T
+        solution.field.add_T(
+            x - 1 if mirror else x + 1, y, True, mirror=not mirror)
+        solution.sequence += "T"
+        return solution.field.clearedRows == 3
     else:
         return False
 
@@ -126,13 +136,45 @@ def get_TSD_continuations(field, rows, cols, bag_filter, find_mirrors):
 
                     valid_sols = []
                     if bag_filter == "isTSD-any":
-                        # check if setup is actually a TSS (with all 7 pieces)
                         valid_sols.extend(
                             filter(lambda sol: is_TSD(sol, col, row),
                                    tsd_sols))
                     else:
                         valid_sols.extend(tsd_sols)
                     solutions.extend(valid_sols)
+                t.update()
+    t.close()
+    return solutions
+
+
+def get_TST_continuations(field, rows, cols, bag_filter, find_mirrors):
+    sf = SFinder()
+    solutions = []
+    mirrors = [False, True] if find_mirrors else [False]
+    # manual tqdm progress bar
+    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup")
+    for row in rows:
+        for col in cols:
+            for mirror in mirrors:
+                # make copies to avoid mutating field
+                tst_field = deepcopy(field)
+                if tst_field.add_overlay(
+                        gen.generate_TST(6, col, row, mirror)):
+                    tst_sols = sf.setup(
+                        fumen=gen.output_fumen(tst_field.field),
+                        use_cache=True)
+
+                    #sf.setup returns None if setup would require too many pieces
+                    if tst_sols is not None:
+                        valid_sols = []
+                        if bag_filter == "isTST":
+                            valid_sols.extend(
+                                filter(
+                                    lambda sol: is_TST(sol, col, row, mirror),
+                                    tst_sols))
+                        else:
+                            valid_sols.extend(tst_sols)
+                        solutions.extend(valid_sols)
                 t.update()
     t.close()
     return solutions
@@ -162,6 +204,7 @@ def setups_from_input():
     sf = SFinder()  # really should get rid of this
     pc_height = None  # need to refactor this (all the arg stuff)
     pc_cutoff = None
+    pc_finish = False  # will determine how results are output
     with open("input.txt", "r") as input_file:
         bags = input_file.read().splitlines()
 
@@ -177,8 +220,13 @@ def setups_from_input():
         for arg in bag_args:
             if arg[:3] == "col":
                 if arg[4:] == "any":
-                    # default for tspin, should be 0-9 for tetris
-                    bag_cols = list(range(1, 8))
+                    if setup_type == "TST":
+                        bag_cols = [1, 2, 3, 4, 5, 6, 7, 8]
+                    elif setup_type == "Tetris":
+                        bag_cols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    else:
+                        # default for TSS, TSD
+                        bag_cols = [1, 2, 3, 4, 5, 6, 7, 7]
                 else:
                     bag_cols = list(map(int, arg[4:].split(',')))
             if arg[:3] == "row":
@@ -202,6 +250,9 @@ def setups_from_input():
         elif setup_type == "TSD":
             setup_func = lambda field: get_TSD_continuations(field, bag_rows, bag_cols, bag_filter, i > 0)
             bag_title = "TSD"
+        elif setup_type == "TST":
+            setup_func = lambda field: get_TST_continuations(field, bag_rows, bag_cols, bag_filter, i > 0)
+            bag_title = "TST"
         elif setup_type == "Tetris":
             # only supports 1 row for tetrises
             setup_func = lambda field: get_Tetris_continuations(field, bag_rows[0], bag_cols)
@@ -213,6 +264,7 @@ def setups_from_input():
                 filter(lambda setup: setup.find_PCs(sf, pc_height, pc_cutoff),
                        tqdm(setups, unit="setup")))
             print("")  #newline so tqdm output isn't weird
+            pc_finish = True
             break  # setup finding ends with a PC
         else:
             raise ValueError("Unknown setup type '%s'." % setup_type)
@@ -236,9 +288,14 @@ def setups_from_input():
 
     print("Generating output file...")
     # image height is hardcoded for now (can I do something like determine max height at each step?)
-    output.output_results(
-        sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
-        pc_cutoff, pc_height, "7")
+    if pc_finish:
+        output.output_results_pc(
+            sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
+            pc_cutoff, pc_height, "7")
+    else:
+        output.output_results(
+            sorted(setups, key=(lambda s: len(s.continuations)), reverse=True),
+            title, "7", 4)
     print("Done.", end=' ')
     print("(Total elapsed time: %.2fsec)" %
           (time.perf_counter() - timer_start))

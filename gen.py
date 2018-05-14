@@ -8,10 +8,18 @@ SHAPE_TSPIN = list(reversed([
     [0, 0, 0],
     [2, 0, 2]])) # yapf: disable
 
-SHAPE_TSPIN_MIRROR = list(reversed([
-    [2, 0, 0],
+SHAPE_TSPIN_MIRROR = [list(reversed(row)) for row in SHAPE_TSPIN]
+
+# having the shape offset like this makes mirroring it less weird, but shouldn't lower possible setups
+# (because even if the part on the left isn't necessary, it's impossible to spin the T in that close to the side)
+SHAPE_TST = list(reversed([
+    [0, 0, 2],
     [0, 0, 0],
-    [2, 0, 2]])) # yapf: disable
+    [2, 2, 0],
+    [2, 0, 0],
+    [2, 2, 0]])) # yapf: disable
+
+SHAPE_TST_MIRROR = [list(reversed(row)) for row in SHAPE_TST]
 
 SHAPE_TETRIS = [[0], [0], [0], [0]]
 
@@ -45,8 +53,8 @@ def generate_setup(field_height, cleared_rows, shape, shape_x, shape_y):
     return field
 
 
-# note: all of these are "left-facing" in that the opening is on the left, the overhang on the right
-#       if using for overlays (not 1st bag), you may need to mirror the generated setup to find right-facing spins
+# note: by default all of these are "left-facing" in that the opening is on the left, the overhang on the right
+# mirror option flips this
 def generate_TSS1(field_height, x, y, mirror):
     field = generate_setup(field_height, [y - 1], SHAPE_TSPIN_MIRROR
                            if mirror else SHAPE_TSPIN, x - 1, y - 1)
@@ -69,6 +77,15 @@ def generate_TSS2(field_height, x, y, mirror):
 def generate_TSD(field_height, x, y, mirror):
     field = generate_setup(field_height, [y - 1, y], SHAPE_TSPIN_MIRROR
                            if mirror else SHAPE_TSPIN, x - 1, y - 1)
+    for y in range(y + 2, field_height):
+        field[y][x + 1 if mirror else x - 1] = 0
+        field[y][x] = 0
+    return field
+
+
+def generate_TST(field_height, x, y, mirror):
+    field = generate_setup(field_height, [y - 1, y, y + 1], SHAPE_TST_MIRROR
+                           if mirror else SHAPE_TST, x - 1, y - 1)
     for y in range(y + 2, field_height):
         field[y][x + 1 if mirror else x - 1] = 0
         field[y][x] = 0

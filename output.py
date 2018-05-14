@@ -9,9 +9,10 @@ from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 
 working_dir = "%s\\%s" % (getcwd(), "output")
+fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
-def output_results(setups, title, pc_cutoff, pc_height, img_height):
+def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
     sf = SFinder()
     with open("%s\\output.html" % working_dir, "w+") as output_file:
         d = document(title=title)
@@ -42,7 +43,35 @@ def output_results(setups, title, pc_cutoff, pc_height, img_height):
                         text(" PC success rate – ")
                         b(
                             a("%d continuations" % len(setup.continuations),
-                              href="http://fumen.zui.jp/?%s" %
-                              setup.to_fumen()))
+                              href=fumen_url + setup.to_fumen()))
                         text("with >%.2f%% PC success rate" % pc_cutoff)
+        output_file.write(d.render())
+
+
+def output_results(setups, title, img_height, conts_to_display):
+    sf = SFinder()
+    with open("%s\\output.html" % working_dir, "w+") as output_file:
+        d = document(title=title)
+        d += h1(title)
+        d += p("%d setups found" % len(setups))
+        with d:
+            #annoying tqdm bug workaround
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", TqdmSynchronisationWarning)
+                for i, setup in enumerate(tqdm(setups, unit="setup")):
+                    h2("Setup %d" % i)
+                    with div():
+                        img(src=sf.fig_png(setup.solution.fumen, img_height))
+                        for cont in setup.continuations[:conts_to_display]:
+                            img(
+                                src=sf.fig_png(cont.solution.fumen,
+                                               img_height))
+                    with p():
+                        total_conts = len(setup.continuations)
+                        text("Showing ")
+                        b("%d" % min(conts_to_display, total_conts))
+                        text(" of ")
+                        b(
+                            a("%d continuations" % total_conts,
+                              href=fumen_url + setup.to_fumen()))
         output_file.write(d.render())
