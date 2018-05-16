@@ -37,6 +37,13 @@ def is_TSD(solution, x, y):
         return False
 
 
+def test_TSD(solution, x, y):
+    """Test if solution _would_ be a TSD, don't actually add the T piece like isTSD."""
+    sol = deepcopy(solution)
+    sol.field.add_T(x, y, False)  #flat T
+    return sol.field.clearedRows == 2
+
+
 def is_TST(solution, x, y, mirror):
     if len(solution.sequence) == 6:
         #vertical T, flipped in comparison to TSS vertical T
@@ -138,6 +145,10 @@ def get_TSD_continuations(field, rows, cols, bag_filter, find_mirrors):
                     if bag_filter == "isTSD-any":
                         valid_sols.extend(
                             filter(lambda sol: is_TSD(sol, col, row),
+                                   tsd_sols))
+                    elif bag_filter == "testTSD":
+                        valid_sols.extend(
+                            filter(lambda sol: test_TSD(sol, col, row),
                                    tsd_sols))
                     else:
                         valid_sols.extend(tsd_sols)
