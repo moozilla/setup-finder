@@ -172,6 +172,20 @@ class TetSetup:
         else:
             return False
 
+    def find_continuations(self, setup_func):
+        """Recursively find and add continuations with function passed as setup_func."""
+        if len(self.continuations) > 0:
+            for cont in tqdm(self.continuations, unit="continuation"):
+                cont.find_continuations(setup_func)
+            # remove setups with no continuations
+            self.continuations = [
+                setup for setup in self.continuations
+                if len(setup.continuations) > 0
+            ]
+        else:
+            new_conts = setup_func(self.solution.field)
+            self.add_continuations(new_conts)
+
     def find_PCs(self, sf, height, cutoff):
         """Find PCs for all continuations, then figure out overall PC rate.
         
@@ -203,10 +217,14 @@ class TetSetup:
         else:
             # note: changing solution.fumen to solution.to_fumen() might invalidate old cache results
             try:
-                self.PC_rate = float(
-                    sf.percent(self.solution.to_fumen(),
-                               self.solution.get_remaining_pieces(), height,
-                               True))
+                if self.solution.field.height > int(height):
+                    # stack too high for desired PC, don't even try
+                    self.PC_rate = 0.00
+                else:
+                    self.PC_rate = float(
+                        sf.percent(self.solution.to_fumen(),
+                                   self.solution.get_remaining_pieces(),
+                                   height, True))
             except:
                 print("Problem cont: " + self.solution.tostring())
                 raise
@@ -228,7 +246,8 @@ class TetSetup:
             frames = [fumen.decode(self.solution.fumen)]
             for cont in self.continuations:
                 field, _ = fumen.decode(cont.solution.fumen)
-                frames.append((field, "%.2f%%" % cont.PC_rate))
+                comment = "%.2f%%" % cont.PC_rate if cont.PC_rate > 0 else ""
+                frames.append((field, comment))
             #print(frames)
             return fumen.encode(frames)
         else:

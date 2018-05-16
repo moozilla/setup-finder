@@ -13,14 +13,14 @@ import warnings
 from copy import deepcopy
 
 
-def is_TSS(solution, x, y, vertical_T=False):
+def is_TSS(solution, x, y, vertical_T=False, mirror=False):
     # for now, filter out solutions that use less than 6 pieces
     # (carrying over pieces into the next bag makes search space too large)
 
     if len(solution.sequence) == 6:
         # leaving each solution's field modfied is by design
         # this way it's as if sfinder had found solutions with Ts already placed
-        solution.field.add_T(x, y, vertical=vertical_T)
+        solution.field.add_T(x, y, vertical=vertical_T, mirror=mirror)
         # todo: (maybe I should move addT to TetSolution?)
         solution.sequence += "T"
         return solution.field.clearedRows == 1
@@ -102,15 +102,15 @@ def get_TSS_continuations(field, rows, cols, bag_filter, TSS1, TSS2,
                     # check if setup is actually a TSS (with all 7 pieces)
                     if TSS1:
                         valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False),
+                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
                                 tss1_sols))
                         valid_sols.extend(
                             filter(
-                                lambda sol: is_TSS(sol, col, row, vertical_T=True),
+                                lambda sol: is_TSS(sol, col, row, vertical_T=True, mirror=mirror),
                                 tss1_sols_copy))
                     if TSS2:
                         valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False),
+                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
                                 tss2_sols))
                 else:
                     if TSS1:
@@ -249,7 +249,7 @@ def setups_from_input():
             if arg[:6] == "cutoff":
                 pc_cutoff = float(arg[7:])
 
-        if setup_type == "TSS-any":
+        if setup_type == "TSS-any" or setup_type == "TSS":
             setup_func = lambda field: get_TSS_continuations(field, bag_rows, bag_cols, bag_filter, True, True, i > 0)
             bag_title = "TSS"
         elif setup_type == "TSS1":
@@ -258,7 +258,7 @@ def setups_from_input():
         elif setup_type == "TSS2":
             setup_func = lambda field: get_TSS_continuations(field, bag_rows, bag_cols, bag_filter, False, True, i > 0)
             bag_title = "TSS2"
-        elif setup_type == "TSD":
+        elif setup_type == "TSD-any" or setup_type == "TSD":
             setup_func = lambda field: get_TSD_continuations(field, bag_rows, bag_cols, bag_filter, i > 0)
             bag_title = "TSD"
         elif setup_type == "TST":
@@ -288,8 +288,7 @@ def setups_from_input():
             print("Bag %d: Finding %s continuations..." % (i, bag_title))
             title += " -> " + bag_title
             for setup in tqdm(setups, unit="setup"):
-                conts = setup_func(setup.solution.field)
-                setup.add_continuations(conts)
+                setup.find_continuations(setup_func)
             # remove setups with no continuations
             setups = [
                 setup for setup in setups if len(setup.continuations) > 0
