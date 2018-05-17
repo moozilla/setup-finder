@@ -48,3 +48,12 @@ The _PC setup-type_ has it's own special arguments:
 
 * _height_ - The height of the PC. (eg. If you are looking for 8-high PCs and you have already cleared a TSD, use `height-6`)
 * _cutoff_ - The cutoff rate for PC success (percentage). PCs with success rate lower than this won't be shown. Use `cutoff-0.01` to show all PCs (this is the lowest success rate solution-finder can return).
+
+## License and Contact Info
+
+Copyright 2018 moozilla. Code licensed under the [MIT License](https://github.com/moozilla/setup-finder/blob/master/LICENSE).
+
+Feel free to contact me with any questions, ideas, or suggestions:
+
+Twitter: [@spikeman](https://twitter.com/spikeman)  
+Discord: pwn#4081 (find me on the [Hard Drop discord server](https://discord.gg/harddrop))
