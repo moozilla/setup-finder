@@ -5,9 +5,9 @@ Using: solution-finder-0.511
 """
 
 import time
-from sfinder import SFinder
-from tet import TetOverlay, TetSetup, TetField
-import gen, output
+from setupfinder.sfinder import SFinder
+from setupfinder.tet import TetOverlay, TetSetup, TetField
+from setupfinder import gen, output
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 from copy import deepcopy
@@ -208,7 +208,7 @@ def get_Tetris_continuations(field, row, cols):
     return solutions
 
 
-def setups_from_input():
+def setups_from_input(input_filename):
     # raise exception if input file not found? need a standard way of error handling for humans
     # allow changing of working-dir?
     timer_start = time.perf_counter()
@@ -216,7 +216,7 @@ def setups_from_input():
     pc_height = None  # need to refactor this (all the arg stuff)
     pc_cutoff = None
     pc_finish = False  # will determine how results are output
-    with open("input.txt", "r") as input_file:
+    with open(input_filename, "r") as input_file:
         bags = input_file.read().splitlines()
 
     setups = []  # do i need to initalize this?
@@ -301,11 +301,9 @@ def setups_from_input():
     if pc_finish:
         output.output_results_pc(
             sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
-            pc_cutoff, pc_height, "7")
     else:
         output.output_results(
             sorted(setups, key=(lambda s: len(s.continuations)), reverse=True),
-            title, "7", 4)
     print("Done.", end=' ')
     print("(Total elapsed time: %.2fsec)" %
           (time.perf_counter() - timer_start))
@@ -314,7 +312,7 @@ def setups_from_input():
 def main():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", TqdmSynchronisationWarning)
-        setups_from_input()
+        setups_from_input("..\\input.txt")
 
 
 if __name__ == '__main__':

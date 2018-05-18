@@ -1,10 +1,9 @@
 """Sfinder module, a wrapper for working with knewjade's solution-finder program."""
 
-import os, re, subprocess, tet
+import os, re, subprocess
 from lxml import html, etree
-from tet import TetSolution, TetField
-import cache
-from fumen import decode
+from setupfinder.tet import TetSolution, TetField
+from setupfinder import cache, fumen
 import base64  #for image generation
 
 #solution finder version, used for finding default sfinder folder
@@ -16,7 +15,7 @@ class SFinder:
         if working_dir is not None:
             self.working_dir = working_dir
         else:
-            self.working_dir = "%s\\%s" % (os.getcwd(), SFINDER_VER)
+            self.working_dir = "%s\\..\\%s" % (os.getcwd(), SFINDER_VER)
 
     def setup(self,
               fumen=None,
@@ -118,7 +117,7 @@ class SFinder:
                 for div in divs:
                     fumen_str = div[0].attrib["href"].split("fumen.zui.jp/?")[
                         1]
-                    field, seq = decode(fumen_str)
+                    field, seq = fumen.decode(fumen_str)
                     # actually kind of silly saving field at all considering it's just cleared lines, but whatever
                     solutions.append(
                         TetSolution(TetField(from_list=field), fumen_str, seq))
@@ -193,6 +192,7 @@ class SFinder:
                 raise RuntimeError(
                     "Couldn't find image path in sfinder output.\n\n" + output)
         except subprocess.CalledProcessError as e:
+            print(e.output)
             raise RuntimeError("Sfinder Error: %s" % re.search(
                 r"Message: (.+)\n", e.output).group(1))
 

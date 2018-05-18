@@ -4,15 +4,17 @@ from os import getcwd
 from dominate import document
 from dominate.tags import h1, h2, div, p, img, a, b, pre
 from dominate.util import text
-from sfinder import SFinder
+from setupfinder.sfinder import SFinder
+from setupfinder.img import get_blocks_from_skin, fumen_to_image
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 
-working_dir = "%s\\%s" % (getcwd(), "output")
+working_dir = "%s\\..\\%s" % (getcwd(), "output")
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
 def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
+    skin = get_blocks_from_skin("%s\\block.png" % working_dir)
     with open("%s\\output.html" % working_dir, "w+") as output_file:
         d = document(title=title)
         d += h1(title)
@@ -23,11 +25,12 @@ def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
                     generate_output_pc(setup, "Setup %d" % i, pc_cutoff,
-                                       pc_height, img_height)
+                                       pc_height, img_height, skin)
         output_file.write(d.render())
 
 
 def output_results(setups, title, img_height, conts_to_display):
+    skin = get_blocks_from_skin("%s\\block.png" % working_dir)
     with open("%s\\output.html" % working_dir, "w+") as output_file:
         d = document(title=title)
         d += h1(title)
@@ -37,35 +40,34 @@ def output_results(setups, title, img_height, conts_to_display):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
-                    generate_output("Setup %d" % i, setup, img_height,
-                                    conts_to_display)
+                    generate_output(setup, ("Setup %d" % i), img_height,
+                                    conts_to_display, skin)
         output_file.write(d.render())
 
 
-def generate_output(setup, title, img_height, conts_to_display, imgs=[]):
+def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
     """Recursively generate output for setup+continuations."""
-    sf = SFinder()
     #not the penultimate bag, need to go deeper
     if len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
-        new_imgs.append(sf.fig_png(setup.solution.fumen, img_height))
+        new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
         # this naming scheme could get messy, anything better? maybe Setup 1-A-A?
         # but I'm not sure what to do if more continuatons than 26, maybe just AA, then AAA
         new_ctd = conts_to_display - 1 if conts_to_display > 1 else 1
         for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
             generate_output(s, title + (" - Sub-Setup %d" % i), img_height,
-                            new_ctd, new_imgs)
+                            new_ctd, skin, new_imgs)
     else:
         h2(title)
         with div():
             for url in imgs:
                 img(src=url)
             #final setup with conts, still need to display it's image
-            img(src=sf.fig_png(setup.solution.fumen, img_height))
+            img(src=fumen_to_image(setup.solution.fumen, img_height, skin))
             conts_to_display -= 1
             for cont in setup.continuations[:conts_to_display]:
-                img(src=sf.fig_png(cont.solution.fumen, img_height))
+                img(src=fumen_to_image(cont.solution.fumen, img_height, skin))
         with p():
             total_conts = len(setup.continuations)
             text("Showing ")
@@ -76,17 +78,22 @@ def generate_output(setup, title, img_height, conts_to_display, imgs=[]):
                   href=fumen_url + setup.to_fumen()))
 
 
-def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height,
+def generate_output_pc(setup,
+                       title,
+                       pc_cutoff,
+                       pc_height,
+                       img_height,
+                       skin,
                        imgs=[]):
     sf = SFinder()
     #not the penultimate bag, need to go deeper
     if len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
-        new_imgs.append(sf.fig_png(setup.solution.fumen, img_height))
+        new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
         for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
             generate_output_pc(s, title + (" - Sub-Setup %d" % i), pc_cutoff,
-                               pc_height, img_height, new_imgs)
+                               pc_height, img_height, skin, new_imgs)
     else:
         h2(title)
         with div():
@@ -99,9 +106,9 @@ def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height,
 
             for url in imgs:
                 img(src=url)
-            img(src=sf.fig_png(setup.solution.fumen, img_height))
-            img(src=sf.fig_png(best_continuation.fumen, img_height))
-            img(src=sf.fig_png(best_pc.fumen, img_height))
+            img(src=fumen_to_image(setup.solution.fumen, img_height, skin))
+            img(src=fumen_to_image(best_continuation.fumen, img_height, skin))
+            img(src=fumen_to_image(best_pc.fumen, img_height, skin))
         with p():
             text("Best continuation: ")
             b("%.2f%%" % setup.continuations[0].PC_rate)

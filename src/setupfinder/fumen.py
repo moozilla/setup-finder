@@ -61,10 +61,10 @@ def decode(fumen_str):
     comment_flag = tmp % 2
     # ignoring any sort of field copying (mirroring, rising, etc) - todo: raise exceptions
 
+    comment = ""
     if comment_flag == 1:
         comment_len = (data[i] + (data[i + 1] * 64)) % 4096
         i += 2
-        comment = ""
         while len(comment) < comment_len:
             val = data[i] + (data[i + 1] * 64) + (data[i + 2] * 4096) + (
                 data[i + 3] * 262144) + (data[i + 4] * 16777216)

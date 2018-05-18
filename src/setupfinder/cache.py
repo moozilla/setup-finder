@@ -2,10 +2,10 @@
 
 from os import getcwd
 from os.path import isfile
-from tet import TetSolution, TetField
-import fumen
+from setupfinder.tet import TetSolution, TetField
+from setupfinder import fumen
 
-working_dir = "%s\\%s" % (getcwd(), "cache")
+working_dir = "%s\\..\\%s" % (getcwd(), "cache")
 
 
 def get_cache_file(fm):
