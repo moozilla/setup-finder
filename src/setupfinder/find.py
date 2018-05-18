@@ -301,9 +301,11 @@ def setups_from_input(input_filename):
     if pc_finish:
         output.output_results_pc(
             sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
+            pc_cutoff, pc_height, 7)
     else:
         output.output_results(
             sorted(setups, key=(lambda s: len(s.continuations)), reverse=True),
+            title, 7, 4)
     print("Done.", end=' ')
     print("(Total elapsed time: %.2fsec)" %
           (time.perf_counter() - timer_start))
