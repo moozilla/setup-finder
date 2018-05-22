@@ -1,7 +1,12 @@
+# development folders
 .vscode/
-notes/
-solution-finder-0.511/
 __pycache__/
+*.egg-info/
+# setup-finder generated stuff + solution-finder install
+solution-finder-0.511/
 cache/*
 output.txt
 output/*
+cache.bin
+# personal folder
+notes/

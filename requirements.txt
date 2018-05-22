@@ -1,0 +1,6 @@
+setuptools==39.2.0
+imageio==2.3.0
+lxml==4.2.1
+numpy==1.14.3
+dominate==2.3.1
+tqdm==4.23.3
