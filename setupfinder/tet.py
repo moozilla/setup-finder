@@ -186,7 +186,7 @@ class TetSetup:
             new_conts = setup_func(self.solution.field)
             self.add_continuations(new_conts)
 
-    def find_PCs(self, sf, height, cutoff):
+    def find_PCs(self, sf, height, cutoff, use_cache):
         """Find PCs for all continuations, then figure out overall PC rate.
         
         Returns true if overall PC rate is >= cutoff, for filtering.
@@ -195,8 +195,9 @@ class TetSetup:
             # find PCs for all continuations, filter out continuations without PCs
             try:
                 self.continuations = list(
-                    filter(lambda cont: cont.find_PCs(sf, height, cutoff),
-                           tqdm(self.continuations, unit="PC")))
+                    filter(
+                        lambda cont: cont.find_PCs(sf, height, cutoff, use_cache),
+                        tqdm(self.continuations, unit="PC")))
             except:
                 print("Parent of problem cont: " + self.solution.tostring())
                 raise
@@ -222,9 +223,11 @@ class TetSetup:
                     self.PC_rate = 0.00
                 else:
                     self.PC_rate = float(
-                        sf.percent(self.solution.to_fumen(),
-                                   self.solution.get_remaining_pieces(),
-                                   height, True))
+                        sf.percent(
+                            self.solution.to_fumen(),
+                            self.solution.get_remaining_pieces(),
+                            height,
+                            use_cache=use_cache))
             except:
                 print("Problem cont: " + self.solution.tostring())
                 raise

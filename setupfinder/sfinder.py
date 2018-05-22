@@ -5,6 +5,7 @@ from lxml import html, etree
 from setupfinder.tet import TetSolution, TetField
 from setupfinder import cache, fumen
 import base64  #for image generation
+from copy import deepcopy
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -22,14 +23,19 @@ class SFinder:
               pieces=None,
               input_diagram=None,
               print_results=False,
-              use_cache=False):
+              use_cache=None):
         """Run sfinder setup command, return setups.
         
         Returns a list of TetSolutions.
         """
-        if use_cache == True and fumen is not None:
+        if use_cache is not None and fumen is not None:
+            # first try new cache
+            if fumen in use_cache:
+                return deepcopy(use_cache[fumen])
             cached_result = cache.get_solutions(fumen)
             if cached_result is not None:
+                # store value in new cache
+                use_cache[fumen] = cached_result
                 return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if fumen:
@@ -82,13 +88,17 @@ class SFinder:
                 raise RuntimeError("Sfinder Error: %s" % re.search(
                     r"Message: (.+)\n", e.output).group(1))
 
-    def path(self, fumen=None, pieces=None, height=None, use_cache=False):
+    def path(self, fumen=None, pieces=None, height=None, use_cache=None):
         """Run sfinder path command, returns a list of solution fumens.
         
         Note: Doesn't parse sequences possible for each fumen, could add this later. (Might want to change to parsing csv for that?)"""
-        if use_cache == True and fumen is not None:
-            cached_result = cache.get_solutions("p" + pieces + fumen)
+        if use_cache is not None and fumen is not None and pieces is not None:
+            key = "p" + pieces + fumen
+            if key in use_cache:
+                return use_cache[key]
+            cached_result = cache.get_solutions(key)
             if cached_result is not None:
+                use_cache[key] = cached_result
                 return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "path"]
         if fumen:
@@ -132,12 +142,16 @@ class SFinder:
             raise RuntimeError("Sfinder Error: %s" % re.search(
                 r"Message: (.+)\n", e.output).group(1))
 
-    def percent(self, fumen=None, pieces=None, height=None, use_cache=False):
+    def percent(self, fumen=None, pieces=None, height=None, use_cache=None):
         """Run sfinder percent command, return overall success rate (just the number)"""
-        if use_cache == True and fumen is not None and pieces is not None:
+        if use_cache is not None and fumen is not None and pieces is not None:
             # "r" for rate, I'll use "p" if I implement path later on
-            cached_result = cache.get_PC_rate("r" + pieces + fumen)
+            key = "r" + pieces + fumen
+            if key in use_cache:
+                return use_cache[key]
+            cached_result = cache.get_PC_rate(key)
             if cached_result is not None:
+                use_cache[key] = cached_result
                 return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "percent"]
         if fumen:
