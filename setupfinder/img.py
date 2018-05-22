@@ -4,7 +4,7 @@ The goal of this module is to speed up output generation.
 The current method of calling sfinder util fig can take several minutes if there are hundreds of solutions."""
 
 import imageio, numpy, base64
-from setupfinder import fumen
+from setupfinder.finder import fumen
 
 
 def get_blocks_from_skin(skin_filename):

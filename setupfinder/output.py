@@ -4,7 +4,7 @@ from os import getcwd
 from dominate import document
 from dominate.tags import h1, h2, div, p, img, a, b, pre
 from dominate.util import text
-from setupfinder.sfinder import SFinder
+from setupfinder.finder.sfinder import SFinder
 from setupfinder.img import get_blocks_from_skin, fumen_to_image
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings

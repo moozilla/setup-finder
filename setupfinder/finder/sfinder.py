@@ -2,10 +2,11 @@
 
 import os, re, subprocess
 from lxml import html, etree
-from setupfinder.tet import TetSolution, TetField
-from setupfinder import cache, fumen
+from setupfinder.finder.tet import TetSolution, TetField
+from setupfinder.finder import cache, fumen
 import base64  #for image generation
 from copy import deepcopy
+from pathlib import Path
 
 #solution finder version, used for finding default sfinder folder
 SFINDER_VER = "solution-finder-0.511"
@@ -16,7 +17,8 @@ class SFinder:
         if working_dir is not None:
             self.working_dir = working_dir
         else:
-            self.working_dir = "%s\\..\\%s" % (os.getcwd(), SFINDER_VER)
+            #"%s\\..\\%s" % (os.getcwd(), SFINDER_VER)
+            self.working_dir = Path.cwd() / SFINDER_VER
 
     def setup(self,
               fumen=None,
@@ -56,7 +58,7 @@ class SFinder:
                     print("Setup found %s solutions, took %s ms\n" %
                           match.group(1, 2))
                 #parse setup.html for solutions
-                with open(self.working_dir + "\\output\\setup.html", "r") as f:
+                with open(self.working_dir / "output/setup.html", "r") as f:
                     setupHtml = f.read()
                 tree = html.fromstring(setupHtml)
                 sections = tree.xpath("//section")
@@ -117,7 +119,7 @@ class SFinder:
             if match:
                 # maybe should have an option for which path result it uses? but going with minimal for now
                 with open(
-                        self.working_dir + "\\output\\path_minimal.html",
+                        self.working_dir / "output/path_minimal.html",
                         "r",
                         encoding="utf-8") as f:
                     setupHtml = f.read()
@@ -212,5 +214,5 @@ class SFinder:
 
     def setInputTxt(self, field_diagram):
         """Set input.txt to a field diagram (string)."""
-        with open(self.working_dir + "\\input\\field.txt", "w+") as f:
+        with open(self.working_dir / "input/field.txt", "w+") as f:
             f.write(field_diagram)

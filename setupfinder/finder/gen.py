@@ -1,6 +1,6 @@
 """Methods for generating different types of setups and overlays and outputting fumen diagrams sfinder can use."""
 
-from setupfinder import fumen
+from setupfinder.finder import fumen
 
 # reversed because TetField goes from bottom->top and I want it to be compatible
 SHAPE_TSPIN = list(reversed([

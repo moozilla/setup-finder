@@ -8,7 +8,7 @@ From simple->complex:
 * TetSetup - TetSolution + continuations (either further TetSetup bags/steps or PCs)
 """
 
-from setupfinder import sfinder, fumen
+from setupfinder.finder import sfinder, fumen
 from tqdm import tqdm
 
 

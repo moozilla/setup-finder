@@ -2,10 +2,12 @@
 
 from os import getcwd
 from os.path import isfile
-from setupfinder.tet import TetSolution, TetField
-from setupfinder import fumen
+from setupfinder.finder.tet import TetSolution, TetField
+from setupfinder.finder import fumen
+from pathlib import Path
 
-working_dir = "%s\\..\\%s" % (getcwd(), "cache")
+#working_dir = "%s\\..\\%s" % (getcwd(), "cache")
+working_dir = Path.cwd() / "cache"
 
 
 def get_cache_file(fm):
@@ -14,7 +16,7 @@ def get_cache_file(fm):
     # note: on windows filenames are case insensitive so collisions could occur, but this probably will never happen
     clean = fm.replace("v115@", "").replace("?", "").replace("/", "_").replace(
         "*", "_")
-    return "%s\\%s.txt" % (working_dir, clean)
+    return working_dir / (clean + ".txt")
 
 
 def get_solutions(fm):

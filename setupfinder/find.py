@@ -5,9 +5,10 @@ Using: solution-finder-0.511
 """
 
 import time
-from setupfinder.sfinder import SFinder
-from setupfinder.tet import TetOverlay, TetSetup, TetField
-from setupfinder import gen, output
+from setupfinder.finder.sfinder import SFinder
+from setupfinder.finder.tet import TetOverlay, TetSetup, TetField
+from setupfinder.finder import gen
+from setupfinder import output
 from tqdm import tqdm, TqdmSynchronisationWarning
 import warnings
 from copy import deepcopy
@@ -234,6 +235,8 @@ def setups_from_input(working_dir):
     print(working_dir)
     with open(working_dir / "cache.bin", "rb") as cache_file:
         setup_cache = pickle.load(cache_file)
+        #setup_cache = {}
+        #rebuild cache if this fails
     print("Time spent loading cache: %.2fsec" %
           (time.perf_counter() - timer_start))
 
