@@ -8,5 +8,6 @@ cache/*
 output.txt
 output/*
 cache.bin
+input.txt
 # personal folder
 notes/
