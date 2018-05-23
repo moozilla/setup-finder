@@ -186,7 +186,7 @@ class TetSetup:
             new_conts = setup_func(self.solution.field)
             self.add_continuations(new_conts)
 
-    def find_PCs(self, sf, height, cutoff, use_cache):
+    def find_PCs(self, height, cutoff, use_cache):
         """Find PCs for all continuations, then figure out overall PC rate.
         
         Returns true if overall PC rate is >= cutoff, for filtering.
@@ -196,7 +196,7 @@ class TetSetup:
             try:
                 self.continuations = list(
                     filter(
-                        lambda cont: cont.find_PCs(sf, height, cutoff, use_cache),
+                        lambda cont: cont.find_PCs(height, cutoff, use_cache),
                         tqdm(self.continuations, unit="PC")))
             except:
                 print("Parent of problem cont: " + self.solution.tostring())
@@ -222,6 +222,8 @@ class TetSetup:
                     # stack too high for desired PC, don't even try
                     self.PC_rate = 0.00
                 else:
+                    #with sfinder.SFinder() as sf:
+                    sf = sfinder.SFinder()
                     self.PC_rate = float(
                         sf.percent(
                             self.solution.to_fumen(),

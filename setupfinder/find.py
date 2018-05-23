@@ -1,246 +1,29 @@
-"""Find T-spin opener setups that end in a 3rd bag PC.
+"""Command line entry point for setup-finder. Parse input.txt for setup to find, output results to output.html.
 
 This will start as an extension to newjade's solution-finder and hopefully become a standalone utility.
-Using: solution-finder-0.511
+Current sfinder version: solution-finder-0.511
 """
 
-import time
-from setupfinder.finder.sfinder import SFinder
-from setupfinder.finder.tet import TetOverlay, TetSetup, TetField
-from setupfinder.finder import gen
-from setupfinder import output
-from tqdm import tqdm, TqdmSynchronisationWarning
-import warnings
-from copy import deepcopy
-import pickle
 from pathlib import Path
-
-
-def is_TSS(solution, x, y, vertical_T=False, mirror=False):
-    # for now, filter out solutions that use less than 6 pieces
-    # (carrying over pieces into the next bag makes search space too large)
-
-    if len(solution.sequence) == 6:
-        # leaving each solution's field modfied is by design
-        # this way it's as if sfinder had found solutions with Ts already placed
-        solution.field.add_T(x, y, vertical=vertical_T, mirror=mirror)
-        # todo: (maybe I should move addT to TetSolution?)
-        solution.sequence += "T"
-        return solution.field.clearedRows == 1
-    else:
-        return False
-
-
-def is_TSD(solution, x, y):
-    if len(solution.sequence) == 6:
-        solution.field.add_T(x, y, False)  #flat T
-        solution.sequence += "T"
-        return solution.field.clearedRows == 2
-    else:
-        return False
-
-
-def test_TSD(solution, x, y):
-    """Test if solution _would_ be a TSD, don't actually add the T piece like isTSD."""
-    sol = deepcopy(solution)
-    sol.field.add_T(x, y, False)  #flat T
-    return sol.field.clearedRows == 2
-
-
-def is_TST(solution, x, y, mirror):
-    if len(solution.sequence) == 6:
-        #vertical T, flipped in comparison to TSS vertical T
-        solution.field.add_T(
-            x - 1 if mirror else x + 1, y, True, mirror=not mirror)
-        solution.sequence += "T"
-        return solution.field.clearedRows == 3
-    else:
-        return False
-
-
-def get_TSS_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          TSS1,
-                          TSS2,
-                          find_mirrors,
-                          use_cache=None):
-    """Finds TSS continuations. Set TSS1 and TSS2 variables to choose which type.
-    Find mirrors should be used to find setups with both left and right overhangs."""
-    sf = SFinder()
-    solutions = []
-    mirrors = [False, True] if find_mirrors else [False]
-    # manual tqdm progress bar
-    t = tqdm(
-        total=len(rows) * len(cols) * (2
-                                       if TSS1 and TSS2 else 1) * len(mirrors),
-        unit="setup")
-    for row in rows:
-        for col in cols:
-            for mirror in mirrors:
-                # make copies to avoid mutating field
-                if TSS1:
-                    tss1_field = deepcopy(field)
-                    # 6 is a reasonable height for blank field setups (7+ should be impossible in one bag)
-                    # may want to have an option for different heights for finding tspins in other bags (prob pass an arg)
-                    if tss1_field.add_overlay(
-                            gen.generate_TSS1(6, col, row, mirror)):
-                        tss1_sols = sf.setup(
-                            fumen=gen.output_fumen(tss1_field.field),
-                            use_cache=use_cache)
-                        # copy so we can try both flat and vertical T
-                    else:
-                        tss1_sols = []
-                    t.update()
-                    tss1_sols_copy = deepcopy(tss1_sols)
-                if TSS2:
-                    tss2_field = deepcopy(field)
-                    if tss2_field.add_overlay(
-                            gen.generate_TSS2(6, col, row, mirror)):
-                        tss2_sols = sf.setup(
-                            fumen=gen.output_fumen(tss2_field.field),
-                            use_cache=use_cache)
-
-                    else:
-                        tss2_sols = []
-                    t.update()
-
-                valid_sols = []
-                if bag_filter == "isTSS-any":
-                    # check if setup is actually a TSS (with all 7 pieces)
-                    if TSS1:
-                        valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
-                                tss1_sols))
-                        valid_sols.extend(
-                            filter(
-                                lambda sol: is_TSS(sol, col, row, vertical_T=True, mirror=mirror),
-                                tss1_sols_copy))
-                    if TSS2:
-                        valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
-                                tss2_sols))
-                else:
-                    if TSS1:
-                        valid_sols.extend(tss1_sols)
-                    if TSS2:
-                        valid_sols.extend(tss2_sols)
-                #if VERBOSE (todo: add something like this?)
-                #print("  Found %d valid TSS setups at %d,%d" % (len(valid_sols), col, row))
-                solutions.extend(valid_sols)
-    t.close()
-    return solutions
-
-
-def get_TSD_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          find_mirrors,
-                          use_cache=None):
-    sf = SFinder()
-    solutions = []
-    mirrors = [False, True] if find_mirrors else [False]
-    # manual tqdm progress bar
-    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup")
-    for row in rows:
-        for col in cols:
-            for mirror in mirrors:
-                # make copies to avoid mutating field
-                tsd_field = deepcopy(field)
-                if tsd_field.add_overlay(
-                        gen.generate_TSD(6, col, row, mirror)):
-                    tsd_sols = sf.setup(
-                        fumen=gen.output_fumen(tsd_field.field),
-                        use_cache=use_cache)
-
-                    valid_sols = []
-                    if bag_filter == "isTSD-any":
-                        valid_sols.extend(
-                            filter(lambda sol: is_TSD(sol, col, row),
-                                   tsd_sols))
-                    elif bag_filter == "testTSD":
-                        valid_sols.extend(
-                            filter(lambda sol: test_TSD(sol, col, row),
-                                   tsd_sols))
-                    else:
-                        valid_sols.extend(tsd_sols)
-                    solutions.extend(valid_sols)
-                t.update()
-    t.close()
-    return solutions
-
-
-def get_TST_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          find_mirrors,
-                          use_cache=None):
-    sf = SFinder()
-    solutions = []
-    mirrors = [False, True] if find_mirrors else [False]
-    # manual tqdm progress bar
-    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup")
-    for row in rows:
-        for col in cols:
-            for mirror in mirrors:
-                # make copies to avoid mutating field
-                tst_field = deepcopy(field)
-                if tst_field.add_overlay(
-                        gen.generate_TST(6, col, row, mirror)):
-                    tst_sols = sf.setup(
-                        fumen=gen.output_fumen(tst_field.field),
-                        use_cache=use_cache)
-
-                    #sf.setup returns None if setup would require too many pieces
-                    if tst_sols is not None:
-                        valid_sols = []
-                        if bag_filter == "isTST":
-                            valid_sols.extend(
-                                filter(
-                                    lambda sol: is_TST(sol, col, row, mirror),
-                                    tst_sols))
-                        else:
-                            valid_sols.extend(tst_sols)
-                        solutions.extend(valid_sols)
-                t.update()
-    t.close()
-    return solutions
-
-
-def get_Tetris_continuations(field, row, cols, use_cache=None):
-    sf = SFinder()
-    solutions = []
-    for col in cols:
-        # make copies to avoid mutating field
-        tet_field = deepcopy(field)
-        # this height should be passed in (from input file?)
-        tet_overlay = gen.generate_Tetris(7, col, row)
-        if tet_field.add_overlay(tet_overlay):
-            tet_sols = sf.setup(
-                fumen=gen.output_fumen(
-                    tet_field.field, comment="-m o -f i -p *p7"),
-                use_cache=use_cache)
-            solutions.extend(tet_sols)
-    return solutions
+import pickle
+import time
+import warnings
+from tqdm import tqdm, TqdmSynchronisationWarning
+from setupfinder import output
+from setupfinder.finder import finder
 
 
 def setups_from_input(working_dir):
     # raise exception if input file not found? need a standard way of error handling for humans
-    # allow changing of working-dir?
-    #setup_cache = {}
     timer_start = time.perf_counter()
     print(working_dir)
-    with open(working_dir / "cache.bin", "rb") as cache_file:
-        setup_cache = pickle.load(cache_file)
-        #setup_cache = {}
-        #rebuild cache if this fails
-    print("Time spent loading cache: %.2fsec" %
-          (time.perf_counter() - timer_start))
+    #with open(working_dir / "cache.bin", "rb") as cache_file:
+    #setup_cache = pickle.load(cache_file)
+    #rebuild cache if this fails
+    #print("Time spent loading cache: %.2fsec" %
+    #      (time.perf_counter() - timer_start))
+    setup_cache = {}
 
-    sf = SFinder()  # really should get rid of this
     pc_height = None  # need to refactor this (all the arg stuff)
     pc_cutoff = None
     pc_finish = False  # will determine how results are output
@@ -277,42 +60,25 @@ def setups_from_input(working_dir):
             if arg[:6] == "cutoff":
                 pc_cutoff = float(arg[7:])
 
-        if setup_type == "TSS-any" or setup_type == "TSS":
-            setup_func = lambda field: get_TSS_continuations(field, bag_rows, bag_cols, bag_filter, True, True, i > 0, use_cache=setup_cache)
-            bag_title = "TSS"
-        elif setup_type == "TSS1":
-            setup_func = lambda field: get_TSS_continuations(field, bag_rows, bag_cols, bag_filter, True, False, i > 0, use_cache=setup_cache)
-            bag_title = "TSS1"
-        elif setup_type == "TSS2":
-            setup_func = lambda field: get_TSS_continuations(field, bag_rows, bag_cols, bag_filter, False, True, i > 0, use_cache=setup_cache)
-            bag_title = "TSS2"
-        elif setup_type == "TSD-any" or setup_type == "TSD":
-            setup_func = lambda field: get_TSD_continuations(field, bag_rows, bag_cols, bag_filter, i > 0, use_cache=setup_cache)
-            bag_title = "TSD"
-        elif setup_type == "TST":
-            setup_func = lambda field: get_TST_continuations(field, bag_rows, bag_cols, bag_filter, i > 0, use_cache=setup_cache)
-            bag_title = "TST"
-        elif setup_type == "Tetris":
-            # only supports 1 row for tetrises
-            setup_func = lambda field: get_Tetris_continuations(field, bag_rows[0], bag_cols, use_cache=setup_cache)
-            bag_title = "Tetris"
-        elif setup_type == "PC":
+        if setup_type == "PC":
             print("Bag %d: Finding PCs..." % i)
             title += " -> PC"
             setups = list(
                 filter(
-                    lambda setup: setup.find_PCs(sf, pc_height, pc_cutoff, use_cache=setup_cache),
+                    lambda setup: setup.find_PCs(pc_height, pc_cutoff, use_cache=setup_cache),
                     tqdm(setups, unit="setup")))
             print("")  #newline so tqdm output isn't weird
             pc_finish = True
             break  # setup finding ends with a PC
         else:
-            raise ValueError("Unknown setup type '%s'." % setup_type)
+            setup_func = finder.get_setup_func(setup_type, bag_rows, bag_cols,
+                                               bag_filter, i > 0, setup_cache)
+            bag_title = setup_type.split('-')[0]
 
         if i == 0:
             print("Bag %d: Finding %s initial bag setups..." % (i, bag_title))
             title = bag_title
-            setups = list(map(TetSetup, setup_func(TetField(from_list=[]))))
+            setups = finder.find_initial_setups(setup_func)
         else:
             print("Bag %d: Finding %s continuations..." % (i, bag_title))
             title += " -> " + bag_title
@@ -325,9 +91,9 @@ def setups_from_input(working_dir):
         #extra newline to make room for extra tqdm bar
         print("\nBag %d: Found %d valid setups" % (i, len(setups)))
 
-    with open(working_dir / "cache.bin", "wb") as cache_file:
-        pickle.dump(setup_cache, cache_file, protocol=pickle.HIGHEST_PROTOCOL)
-    """ print("Generating output file...")
+    #with open(working_dir / "cache.bin", "wb") as cache_file:
+    #    pickle.dump(setup_cache, cache_file, protocol=pickle.HIGHEST_PROTOCOL)
+    print("Generating output file...")
     # image height is hardcoded for now (can I do something like determine max height at each step?)
     if pc_finish:
         output.output_results_pc(
@@ -336,7 +102,7 @@ def setups_from_input(working_dir):
     else:
         output.output_results(
             sorted(setups, key=(lambda s: len(s.continuations)), reverse=True),
-            title, 7, 4) """
+            title, 7, 4)
     print("Done.", end=' ')
     print(
         "(Total elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))

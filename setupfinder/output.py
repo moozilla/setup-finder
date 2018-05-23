@@ -1,21 +1,22 @@
 """Generate output.html file for setup-finder results."""
 
 from os import getcwd
+from pathlib import Path
+import warnings
+from tqdm import tqdm, TqdmSynchronisationWarning
 from dominate import document
 from dominate.tags import h1, h2, div, p, img, a, b, pre
 from dominate.util import text
 from setupfinder.finder.sfinder import SFinder
 from setupfinder.img import get_blocks_from_skin, fumen_to_image
-from tqdm import tqdm, TqdmSynchronisationWarning
-import warnings
 
-working_dir = "%s\\..\\%s" % (getcwd(), "output")
+working_dir = Path.cwd() / "output"
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
 def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
-    skin = get_blocks_from_skin("%s\\block.png" % working_dir)
-    with open("%s\\output.html" % working_dir, "w+") as output_file:
+    skin = get_blocks_from_skin(working_dir / "block.png")
+    with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
         d += h1(title)
         d += p("%d setups found" % len(setups))
@@ -30,8 +31,8 @@ def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
 
 
 def output_results(setups, title, img_height, conts_to_display):
-    skin = get_blocks_from_skin("%s\\block.png" % working_dir)
-    with open("%s\\output.html" % working_dir, "w+") as output_file:
+    skin = get_blocks_from_skin(working_dir / "block.png")
+    with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
         d += h1(title)
         d += p("%d setups found" % len(setups))
@@ -102,7 +103,7 @@ def generate_output_pc(setup,
                 fumen=best_continuation.to_fumen(),
                 pieces=best_continuation.get_remaining_pieces(),
                 height=pc_height,
-                use_cache=True)[0]
+                use_cache={})[0]  #todo: hack! change this when i fix cache
 
             for url in imgs:
                 img(src=url)
