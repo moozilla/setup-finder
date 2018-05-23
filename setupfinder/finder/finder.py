@@ -221,24 +221,40 @@ def get_Tetris_continuations(field, row, cols, use_cache=None):
     return solutions
 
 
-def get_setup_func(setup_type, rows, cols, setup_filter, mirrors, setup_cache):
-    """Return a function that can be applied to a field argument to find setups of the proper type."""
-    if setup_type == "TSS-any" or setup_type == "TSS":
-        return lambda field: get_TSS_continuations(field, rows, cols, setup_filter, True, True, mirrors, use_cache=setup_cache)
-    elif setup_type == "TSS1":
-        return lambda field: get_TSS_continuations(field, rows, cols, setup_filter, True, False, mirrors, use_cache=setup_cache)
-    elif setup_type == "TSS2":
-        return lambda field: get_TSS_continuations(field, rows, cols, setup_filter, False, True, mirrors, use_cache=setup_cache)
-    elif setup_type == "TSD-any" or setup_type == "TSD":
-        return lambda field: get_TSD_continuations(field, rows, cols, setup_filter, mirrors, use_cache=setup_cache)
-    elif setup_type == "TST":
-        return lambda field: get_TST_continuations(field, rows, cols, setup_filter, mirrors, use_cache=setup_cache)
-    elif setup_type == "Tetris":
+def get_setup_func(args, find_mirrors=False, setup_cache=None):
+    """Return a function that can be applied to a field argument to find setups of the proper type.
+    
+    args is dict containing setup_type, rows, cols, filter, height, cutoff
+    """
+    if args['setup_type'] == "TSS-any" or args['setup_type'] == "TSS":
+        return lambda field: get_TSS_continuations(field, args['rows'], args['cols'], args['filter'], True, True, find_mirrors, use_cache=setup_cache)
+    elif args['setup_type'] == "TSS1":
+        return lambda field: get_TSS_continuations(field, args['rows'], args['cols'], args['filter'], True, False, find_mirrors, use_cache=setup_cache)
+    elif args['setup_type'] == "TSS2":
+        return lambda field: get_TSS_continuations(field, args['rows'], args['cols'], args['filter'], False, True, find_mirrors, use_cache=setup_cache)
+    elif args['setup_type'] == "TSD-any" or args['setup_type'] == "TSD":
+        return lambda field: get_TSD_continuations(field, args['rows'], args['cols'], args['filter'], find_mirrors, use_cache=setup_cache)
+    elif args['setup_type'] == "TST":
+        return lambda field: get_TST_continuations(field, args['rows'], args['cols'], args['filter'], find_mirrors, use_cache=setup_cache)
+    elif args['setup_type'] == "Tetris":
         # only supports 1 row for tetrises
-        return lambda field: get_Tetris_continuations(field, rows[0], cols, use_cache=setup_cache)
+        return lambda field: get_Tetris_continuations(field, args['rows'][0], args['cols'], use_cache=setup_cache)
     else:
-        raise ValueError("Unknown setup type '%s'." % setup_type)
+        raise ValueError("Unknown setup type '%s'." % args['setup_type'])
+
 
 def find_initial_setups(setup_func):
     """Apply setup function to blank field to get initial bag 'continuations.'"""
     return list(map(TetSetup, setup_func(TetField(from_list=[]))))
+
+
+def find_continuations(setup_func, setups):
+    """Apply setup function to each setup to find it's continuations, then filter out setups with no continuations."""
+    for setup in tqdm(setups, unit="setup"):
+        setup.find_continuations(setup_func)
+    # remove setups with no continuations
+    return [setup for setup in setups if len(setup.continuations) > 0]
+
+
+def find_PC_setups(setups, height, cutoff, setup_cache):
+    return list(filter(lambda setup: setup.find_PCs(height, cutoff, use_cache=setup_cache), tqdm(setups, unit="setup")))
