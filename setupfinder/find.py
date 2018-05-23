@@ -125,11 +125,8 @@ def setups_from_input(working_dir):
 
 
 def main():
+    """Entry point for command-line."""
     working_dir = Path.cwd()
     #with warnings.catch_warnings():
     #warnings.simplefilter("ignore", TqdmSynchronisationWarning)
     setups_from_input(working_dir)
-
-
-#if __name__ == '__main__':
-#    main()
