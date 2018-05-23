@@ -14,7 +14,7 @@ working_dir = Path.cwd() / "output"
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
-def output_results_pc(setups, title, pc_cutoff, pc_height, img_height):
+def output_results_pc(setups, title, pc_height, pc_cutoff, img_height):
     skin = get_blocks_from_skin(working_dir / "block.png")
     with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
