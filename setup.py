@@ -21,7 +21,7 @@ setuptools.setup(
         "Environment :: Console",
         "Topic :: Games/Entertainment :: Puzzle Games",
     ),
-    python_requires='~=3.4',
+    python_requires='~=3.6',
     entry_points={
         'console_scripts': ['setup-finder=setupfinder.find:main'],
     })
