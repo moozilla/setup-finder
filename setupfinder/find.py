@@ -91,7 +91,7 @@ def setups_from_input(working_dir):
             title += " -> " + bag_title
             f.find_continuations(args)
 
-        print(f"\nBag {i}: Found {len(f.setups)} valid setups")
+        print(f"Bag {i}: Found {len(f.setups)} valid setups")
 
     #with open(working_dir / "cache.bin", "wb") as cache_file:
     #    pickle.dump(setup_cache, cache_file, protocol=pickle.HIGHEST_PROTOCOL)
@@ -103,7 +103,7 @@ def setups_from_input(working_dir):
     else:
         output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
     print("Done.", end=' ')
-    print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2}sec)")
+    print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
 
 
 def main():

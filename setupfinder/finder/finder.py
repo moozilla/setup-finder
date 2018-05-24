@@ -4,6 +4,7 @@ The finder module is intended to be used by scripts to run any setup finding cod
 Input and output should be done by the scripts themselves and then passed into and received from the finder module."""
 
 from copy import deepcopy
+import colorama  # so tqdm looks good on windows
 from tqdm import tqdm
 from setupfinder.finder.sfinder import SFinder
 from setupfinder.finder.tet import TetOverlay, TetSetup, TetField
@@ -58,7 +59,7 @@ def get_TSS_continuations(field, rows, cols, bag_filter, TSS1, TSS2, find_mirror
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
     # manual tqdm progress bar
-    t = tqdm(total=len(rows) * len(cols) * (2 if TSS1 and TSS2 else 1) * len(mirrors), unit="setup")
+    t = tqdm(total=len(rows) * len(cols) * (2 if TSS1 and TSS2 else 1) * len(mirrors), unit="setup", leave=False)
     for row in rows:
         for col in cols:
             for mirror in mirrors:
@@ -111,7 +112,7 @@ def get_TSD_continuations(field, rows, cols, bag_filter, find_mirrors, use_cache
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
     # manual tqdm progress bar
-    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup")
+    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup", leave=False)
     for row in rows:
         for col in cols:
             for mirror in mirrors:
@@ -138,7 +139,7 @@ def get_TST_continuations(field, rows, cols, bag_filter, find_mirrors, use_cache
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
     # manual tqdm progress bar
-    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup")
+    t = tqdm(total=len(rows) * len(cols) * len(mirrors), unit="setup", leave=False)
     for row in rows:
         for col in cols:
             for mirror in mirrors:
@@ -194,7 +195,7 @@ def get_setup_func(args, find_mirrors=False, setup_cache=None):
         # only supports 1 row for tetrises
         return lambda field: get_Tetris_continuations(field, args['rows'][0], args['cols'], use_cache=setup_cache)
     else:
-        raise ValueError("Unknown setup type '%s'." % args['setup_type'])
+        raise ValueError(f"Unknown setup type '{args['setup_type']}'.")
 
 
 def find_continuations(setup_func, setups):

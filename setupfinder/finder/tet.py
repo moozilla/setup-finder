@@ -169,7 +169,7 @@ class TetSetup:
     def find_continuations(self, setup_func):
         """Recursively find and add continuations with function passed as setup_func."""
         if len(self.continuations) > 0:
-            for cont in tqdm(self.continuations, unit="continuation"):
+            for cont in tqdm(self.continuations, unit="continuation", leave=False):
                 cont.find_continuations(setup_func)
             # remove setups with no continuations
             self.continuations = [setup for setup in self.continuations if len(setup.continuations) > 0]
@@ -186,9 +186,8 @@ class TetSetup:
             # find PCs for all continuations, filter out continuations without PCs
             try:
                 self.continuations = list(
-                    filter(
-                        lambda cont: cont.find_PCs(height, cutoff, use_cache),
-                        tqdm(self.continuations, unit="PC")))
+                    filter(lambda cont: cont.find_PCs(height, cutoff, use_cache),
+                           tqdm(self.continuations, unit="PC", leave=False)))
             except:
                 print("Parent of problem cont: " + self.solution.tostring())
                 raise
