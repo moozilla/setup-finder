@@ -9,5 +9,6 @@ output.txt
 output/*
 cache.bin
 input.txt
+error.log
 # personal folder
 notes/
