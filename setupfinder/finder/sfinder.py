@@ -66,8 +66,11 @@ class SFinder:
                                     TetField(from_string=field_str),
                                     child[0].attrib["href"].split("fumen.zui.jp/?")[1],
                                     child[0].text))
-                if use_cache:
+                if use_cache is not None:
+                    # need to test this
+                    use_cache[fumen] = deepcopy(solutions)
                     cache.save_solutions(fumen, solutions)
+                print(f"Returning: {solutions}")
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception
@@ -76,6 +79,7 @@ class SFinder:
         except subprocess.CalledProcessError as e:
             if "Should specify equal to or more than" in e.output:
                 # not enough pieces to even try finding setups, return None
+                use_cache[fumen] = None
                 return None
             else:
                 raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
