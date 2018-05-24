@@ -7,7 +7,8 @@ Current sfinder version: solution-finder-0.511
 from pathlib import Path
 import pickle
 import time
-import warnings
+import logging
+#import warnings
 #from tqdm import tqdm, TqdmSynchronisationWarning
 from setupfinder import output
 from setupfinder.finder import finder
@@ -111,4 +112,14 @@ def main():
     working_dir = Path.cwd()
     #with warnings.catch_warnings():
     #warnings.simplefilter("ignore", TqdmSynchronisationWarning)
-    setups_from_input(working_dir)
+    try:
+        setups_from_input(working_dir)
+    except Exception as e:
+        if __debug__:
+            raise
+        logging.basicConfig(filename='error.log', level=logging.ERROR)
+        logging.exception(e)
+        print(f"Error: {e}")
+        print(
+            f"See error.log for more details. Please consider opening an issue at: https://github.com/moozilla/setup-finder/issues"
+        )
