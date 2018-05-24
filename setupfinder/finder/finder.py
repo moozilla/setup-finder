@@ -44,32 +44,21 @@ def test_TSD(solution, x, y):
 def is_TST(solution, x, y, mirror):
     if len(solution.sequence) == 6:
         #vertical T, flipped in comparison to TSS vertical T
-        solution.field.add_T(
-            x - 1 if mirror else x + 1, y, True, mirror=not mirror)
+        solution.field.add_T(x - 1 if mirror else x + 1, y, True, mirror=not mirror)
         solution.sequence += "T"
         return solution.field.clearedRows == 3
     else:
         return False
 
 
-def get_TSS_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          TSS1,
-                          TSS2,
-                          find_mirrors,
-                          use_cache=None):
+def get_TSS_continuations(field, rows, cols, bag_filter, TSS1, TSS2, find_mirrors, use_cache=None):
     """Finds TSS continuations. Set TSS1 and TSS2 variables to choose which type.
     Find mirrors should be used to find setups with both left and right overhangs."""
     sf = SFinder()
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
     # manual tqdm progress bar
-    t = tqdm(
-        total=len(rows) * len(cols) * (2
-                                       if TSS1 and TSS2 else 1) * len(mirrors),
-        unit="setup")
+    t = tqdm(total=len(rows) * len(cols) * (2 if TSS1 and TSS2 else 1) * len(mirrors), unit="setup")
     for row in rows:
         for col in cols:
             for mirror in mirrors:
@@ -78,11 +67,8 @@ def get_TSS_continuations(field,
                     tss1_field = deepcopy(field)
                     # 6 is a reasonable height for blank field setups (7+ should be impossible in one bag)
                     # may want to have an option for different heights for finding tspins in other bags (prob pass an arg)
-                    if tss1_field.add_overlay(
-                            gen.generate_TSS1(6, col, row, mirror)):
-                        tss1_sols = sf.setup(
-                            fumen=gen.output_fumen(tss1_field.field),
-                            use_cache=use_cache)
+                    if tss1_field.add_overlay(gen.generate_TSS1(6, col, row, mirror)):
+                        tss1_sols = sf.setup(fumen=gen.output_fumen(tss1_field.field), use_cache=use_cache)
                         # copy so we can try both flat and vertical T
                     else:
                         tss1_sols = []
@@ -90,11 +76,8 @@ def get_TSS_continuations(field,
                     tss1_sols_copy = deepcopy(tss1_sols)
                 if TSS2:
                     tss2_field = deepcopy(field)
-                    if tss2_field.add_overlay(
-                            gen.generate_TSS2(6, col, row, mirror)):
-                        tss2_sols = sf.setup(
-                            fumen=gen.output_fumen(tss2_field.field),
-                            use_cache=use_cache)
+                    if tss2_field.add_overlay(gen.generate_TSS2(6, col, row, mirror)):
+                        tss2_sols = sf.setup(fumen=gen.output_fumen(tss2_field.field), use_cache=use_cache)
 
                     else:
                         tss2_sols = []
@@ -105,16 +88,12 @@ def get_TSS_continuations(field,
                     # check if setup is actually a TSS (with all 7 pieces)
                     if TSS1:
                         valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
-                                tss1_sols))
+                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror), tss1_sols))
                         valid_sols.extend(
-                            filter(
-                                lambda sol: is_TSS(sol, col, row, vertical_T=True, mirror=mirror),
-                                tss1_sols_copy))
+                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=True, mirror=mirror), tss1_sols_copy))
                     if TSS2:
                         valid_sols.extend(
-                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror),
-                                tss2_sols))
+                            filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror), tss2_sols))
                 else:
                     if TSS1:
                         valid_sols.extend(tss1_sols)
@@ -127,12 +106,7 @@ def get_TSS_continuations(field,
     return solutions
 
 
-def get_TSD_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          find_mirrors,
-                          use_cache=None):
+def get_TSD_continuations(field, rows, cols, bag_filter, find_mirrors, use_cache=None):
     sf = SFinder()
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
@@ -143,21 +117,14 @@ def get_TSD_continuations(field,
             for mirror in mirrors:
                 # make copies to avoid mutating field
                 tsd_field = deepcopy(field)
-                if tsd_field.add_overlay(
-                        gen.generate_TSD(6, col, row, mirror)):
-                    tsd_sols = sf.setup(
-                        fumen=gen.output_fumen(tsd_field.field),
-                        use_cache=use_cache)
+                if tsd_field.add_overlay(gen.generate_TSD(6, col, row, mirror)):
+                    tsd_sols = sf.setup(fumen=gen.output_fumen(tsd_field.field), use_cache=use_cache)
 
                     valid_sols = []
                     if bag_filter == "isTSD-any":
-                        valid_sols.extend(
-                            filter(lambda sol: is_TSD(sol, col, row),
-                                   tsd_sols))
+                        valid_sols.extend(filter(lambda sol: is_TSD(sol, col, row), tsd_sols))
                     elif bag_filter == "testTSD":
-                        valid_sols.extend(
-                            filter(lambda sol: test_TSD(sol, col, row),
-                                   tsd_sols))
+                        valid_sols.extend(filter(lambda sol: test_TSD(sol, col, row), tsd_sols))
                     else:
                         valid_sols.extend(tsd_sols)
                     solutions.extend(valid_sols)
@@ -166,12 +133,7 @@ def get_TSD_continuations(field,
     return solutions
 
 
-def get_TST_continuations(field,
-                          rows,
-                          cols,
-                          bag_filter,
-                          find_mirrors,
-                          use_cache=None):
+def get_TST_continuations(field, rows, cols, bag_filter, find_mirrors, use_cache=None):
     sf = SFinder()
     solutions = []
     mirrors = [False, True] if find_mirrors else [False]
@@ -182,20 +144,14 @@ def get_TST_continuations(field,
             for mirror in mirrors:
                 # make copies to avoid mutating field
                 tst_field = deepcopy(field)
-                if tst_field.add_overlay(
-                        gen.generate_TST(6, col, row, mirror)):
-                    tst_sols = sf.setup(
-                        fumen=gen.output_fumen(tst_field.field),
-                        use_cache=use_cache)
+                if tst_field.add_overlay(gen.generate_TST(6, col, row, mirror)):
+                    tst_sols = sf.setup(fumen=gen.output_fumen(tst_field.field), use_cache=use_cache)
 
                     #sf.setup returns None if setup would require too many pieces
                     if tst_sols is not None:
                         valid_sols = []
                         if bag_filter == "isTST":
-                            valid_sols.extend(
-                                filter(
-                                    lambda sol: is_TST(sol, col, row, mirror),
-                                    tst_sols))
+                            valid_sols.extend(filter(lambda sol: is_TST(sol, col, row, mirror), tst_sols))
                         else:
                             valid_sols.extend(tst_sols)
                         solutions.extend(valid_sols)
@@ -214,9 +170,7 @@ def get_Tetris_continuations(field, row, cols, use_cache=None):
         tet_overlay = gen.generate_Tetris(7, col, row)
         if tet_field.add_overlay(tet_overlay):
             tet_sols = sf.setup(
-                fumen=gen.output_fumen(
-                    tet_field.field, comment="-m o -f i -p *p7"),
-                use_cache=use_cache)
+                fumen=gen.output_fumen(tet_field.field, comment="-m o -f i -p *p7"), use_cache=use_cache)
             solutions.extend(tet_sols)
     return solutions
 
@@ -243,11 +197,6 @@ def get_setup_func(args, find_mirrors=False, setup_cache=None):
         raise ValueError("Unknown setup type '%s'." % args['setup_type'])
 
 
-def find_initial_setups(setup_func):
-    """Apply setup function to blank field to get initial bag 'continuations.'"""
-    return list(map(TetSetup, setup_func(TetField(from_list=[]))))
-
-
 def find_continuations(setup_func, setups):
     """Apply setup function to each setup to find it's continuations, then filter out setups with no continuations."""
     for setup in tqdm(setups, unit="setup"):
@@ -258,3 +207,35 @@ def find_continuations(setup_func, setups):
 
 def find_PC_setups(setups, height, cutoff, setup_cache):
     return list(filter(lambda setup: setup.find_PCs(height, cutoff, use_cache=setup_cache), tqdm(setups, unit="setup")))
+
+
+class Finder:
+    def __init__(self):
+        self.setups = []
+        self.pc_finish = False
+        # these are used in generating PC paths in output, if "best_pc" is found here these could be removed
+        self.pc_height = None
+        self.pc_cutoff = None
+        self.cache = {}  #initialize cache here
+
+    def find_initial_setups(self, args):
+        """Initialize by finding blank-field setups specified by args."""
+        setup_func = get_setup_func(args, find_mirrors=False, setup_cache=self.cache)
+        # Apply setup function to blank field to get initial bag 'continuations.'
+        self.setups = list(map(TetSetup, setup_func(TetField(from_list=[]))))
+
+    def find_continuations(self, args):
+        """Apply setup function (specified by args) to each setup to find it's continuations."""
+        setup_func = get_setup_func(args, find_mirrors=True, setup_cache=self.cache)
+        for setup in tqdm(self.setups, unit="setup"):
+            setup.find_continuations(setup_func)
+        # remove setups with no continuations
+        self.setups = [setup for setup in self.setups if len(setup.continuations) > 0]
+
+    def find_PC_finishes(self, args):
+        """Find PC finishes for all setups."""
+        # should check and make sure valid args are passed
+        self.pc_height = args['height']
+        self.pc_cutoff = args['cutoff']
+        self.pc_finish = True
+        self.setups = find_PC_setups(self.setups, self.pc_height, self.pc_cutoff, self.cache)

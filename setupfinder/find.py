@@ -59,69 +59,51 @@ def parse_input_line(bag):
 
 
 def setups_from_input(working_dir):
-    # raise exception if input file not found? need a standard way of error handling for humans
     timer_start = time.perf_counter()
-    print(working_dir)
     #with open(working_dir / "cache.bin", "rb") as cache_file:
     #setup_cache = pickle.load(cache_file)
     #rebuild cache if this fails
     #print("Time spent loading cache: %.2fsec" %
     #      (time.perf_counter() - timer_start))
-    setup_cache = {}
 
-    pc_finish = False  # will determine how results are output
+    #check if input file exists...
     with open(working_dir / "input.txt", "r") as input_file:
         bags = input_file.read().splitlines()
 
-    setups = []
+    f = finder.Finder()
+    # should generate title from setup results
     title = ""  #title/heading of output.html
-    pc_height = None  # these are used again in generating output
-    pc_cutoff = None
     for i, bag in enumerate(bags):
         args = parse_input_line(bag)
-
-        if args['setup_type'] == "PC":
-            # note: this assumes there was a bag before PC finish, not intended to find pure PC setups
-            print("Bag %d: Finding PCs..." % i)
-            title += " -> PC"
-            pc_height = args['height']
-            pc_cutoff = args['cutoff']
-            setups = finder.find_PC_setups(setups, pc_height, pc_cutoff,
-                                           setup_cache)
-            print("")  #newline so tqdm output isn't weird
-            pc_finish = True
-            break  # setup finding ends with a PC
-        else:
-            setup_func = finder.get_setup_func(
-                args, find_mirrors=(i > 0), setup_cache=setup_cache)
-            bag_title = args['setup_type'].split('-')[0]
+        bag_title = args['setup_type'].split('-')[0]
 
         if i == 0:
-            print("Bag %d: Finding %s initial bag setups..." % (i, bag_title))
+            print(f"Bag {i}: Finding {bag_title} initial bag setups...")
             title = bag_title
-            setups = finder.find_initial_setups(setup_func)
+            f.find_initial_setups(args)
         else:
-            print("Bag %d: Finding %s continuations..." % (i, bag_title))
+            if args['setup_type'] == "PC":
+                print(f"Bag {i}: Finding PCs...")
+                title += " -> PC"
+                f.find_PC_finishes(args)
+                break
+            print(f"Bag {i}: Finding {bag_title} continuations...")
             title += " -> " + bag_title
-            setups = finder.find_continuations(setup_func, setups)
-        #extra newline to make room for extra tqdm bar
-        print("\nBag %d: Found %d valid setups" % (i, len(setups)))
+            f.find_continuations(args)
+
+        print(f"\nBag {i}: Found {len(f.setups)} valid setups")
 
     #with open(working_dir / "cache.bin", "wb") as cache_file:
     #    pickle.dump(setup_cache, cache_file, protocol=pickle.HIGHEST_PROTOCOL)
     print("Generating output file...")
     # image height is hardcoded for now (can I do something like determine max height at each step?)
-    if pc_finish:
+    if f.pc_finish:
         output.output_results_pc(
-            sorted(setups, key=(lambda s: s.PC_rate), reverse=True), title,
-            pc_height, pc_cutoff, 7)
+            sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7)
     else:
-        output.output_results(
-            sorted(setups, key=(lambda s: len(s.continuations)), reverse=True),
-            title, 7, 4)
+        output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
     print("Done.", end=' ')
-    print(
-        "(Total elapsed time: %.2fsec)" % (time.perf_counter() - timer_start))
+    print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2}sec)")
 
 
 def main():
