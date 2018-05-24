@@ -5,7 +5,6 @@ Current sfinder version: solution-finder-0.511
 """
 
 from pathlib import Path
-import pickle
 import time
 import logging
 #import warnings
@@ -15,7 +14,7 @@ from setupfinder.finder import finder
 
 
 def parse_input_line(bag):
-    """Parse a line from input.txt into a dict with default values.
+    """Parse a line from input.txt into a dict with default values if args are missing.
     
     Arguments are separated by spaces, argument name and value separated by dash.
     Example line: TSD row-1,2 col-any filter-isTSD-any
@@ -61,48 +60,42 @@ def parse_input_line(bag):
 
 def setups_from_input(working_dir):
     timer_start = time.perf_counter()
-    #with open(working_dir / "cache.bin", "rb") as cache_file:
-    #setup_cache = pickle.load(cache_file)
-    #rebuild cache if this fails
-    #print("Time spent loading cache: %.2fsec" %
-    #      (time.perf_counter() - timer_start))
 
     #check if input file exists...
     with open(working_dir / "input.txt", "r") as input_file:
         bags = input_file.read().splitlines()
 
-    f = finder.Finder()
-    # should generate title from setup results
-    title = ""  #title/heading of output.html
-    for i, bag in enumerate(bags):
-        args = parse_input_line(bag)
-        bag_title = args['setup_type'].split('-')[0]
+    # using f in a with statement to initialize/output cache
+    with finder.Finder() as f:
+        # should generate title from setup results
+        title = ""  #title/heading of output.html
+        for i, bag in enumerate(bags):
+            args = parse_input_line(bag)
+            bag_title = args['setup_type'].split('-')[0]
 
-        if i == 0:
-            print(f"Bag {i}: Finding {bag_title} initial bag setups...")
-            title = bag_title
-            f.find_initial_setups(args)
+            if i == 0:
+                print(f"Bag {i}: Finding {bag_title} initial bag setups...")
+                title = bag_title
+                f.find_initial_setups(args)
+            else:
+                if args['setup_type'] == "PC":
+                    print(f"Bag {i}: Finding PCs...")
+                    title += " -> PC"
+                    f.find_PC_finishes(args)
+                    break
+                print(f"Bag {i}: Finding {bag_title} continuations...")
+                title += " -> " + bag_title
+                f.find_continuations(args)
+
+            print(f"Bag {i}: Found {len(f.setups)} valid setups")
+
+        print("Generating output file...")
+        # image height is hardcoded for now (can I do something like determine max height at each step?)
+        if f.pc_finish:
+            output.output_results_pc(
+                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7)
         else:
-            if args['setup_type'] == "PC":
-                print(f"Bag {i}: Finding PCs...")
-                title += " -> PC"
-                f.find_PC_finishes(args)
-                break
-            print(f"Bag {i}: Finding {bag_title} continuations...")
-            title += " -> " + bag_title
-            f.find_continuations(args)
-
-        print(f"Bag {i}: Found {len(f.setups)} valid setups")
-
-    #with open(working_dir / "cache.bin", "wb") as cache_file:
-    #    pickle.dump(setup_cache, cache_file, protocol=pickle.HIGHEST_PROTOCOL)
-    print("Generating output file...")
-    # image height is hardcoded for now (can I do something like determine max height at each step?)
-    if f.pc_finish:
-        output.output_results_pc(
-            sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7)
-    else:
-        output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
+            output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
     print("Done.", end=' ')
     print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
 

@@ -4,6 +4,8 @@ The finder module is intended to be used by scripts to run any setup finding cod
 Input and output should be done by the scripts themselves and then passed into and received from the finder module."""
 
 from copy import deepcopy
+from pathlib import Path
+import pickle
 import colorama  # so tqdm looks good on windows
 from tqdm import tqdm
 from setupfinder.finder.sfinder import SFinder
@@ -218,6 +220,19 @@ class Finder:
         self.pc_height = None
         self.pc_cutoff = None
         self.cache = {}  #initialize cache here
+        self.cache_file = Path.cwd() / "cache.bin"
+
+    def __enter__(self):
+        """When used in a context-manager, load sfinder result cache from cache.bin."""
+        if self.cache_file.exists():  # pylint: disable=E1101
+            with open(self.cache_file, "rb") as f:
+                self.cache = pickle.load(f)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        with open(self.cache_file, "wb") as f:
+            pickle.dump(self.cache, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return False  # don't supress any exceptions
 
     def find_initial_setups(self, args):
         """Initialize by finding blank-field setups specified by args."""
