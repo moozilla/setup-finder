@@ -33,8 +33,7 @@ class TetField:
                 # insert row at top, because diagram is top->bottom but field bottom is y=0
                 self.field.insert(0, row)
         if from_list is not None:
-            self.field = [[1 if b > 0 else 0 for b in row]
-                          for row in from_list]  # colors -> 1s and 0s
+            self.field = [[1 if b > 0 else 0 for b in row] for row in from_list]  # colors -> 1s and 0s
             self.height = len(self.field)
 
     def tostring(self):
@@ -42,8 +41,7 @@ class TetField:
         for y in range(self.height):
             row = ""
             for x in range(10):
-                row += "_X*." [self.field[y][
-                    x]]  #"X" if (self.field[y][x] == 1) else "_"
+                row += "_X*." [self.field[y][x]]  #"X" if (self.field[y][x] == 1) else "_"
             rows.insert(0, row)
             #str = row + "\n" + str  # display field top->bottom
         return "\n".join(rows)
@@ -108,9 +106,7 @@ class TetOverlay:
         diagramRows = overlayString.split()
         diagramRows.reverse()
         self.height = len(diagramRows)
-        self.overlay = [
-            list(map(lambda c: '_X*.'.index(c), row)) for row in diagramRows
-        ]
+        self.overlay = [list(map(lambda c: '_X*.'.index(c), row)) for row in diagramRows]
 
 
 class TetSolution:
@@ -143,8 +139,7 @@ class TetSolution:
 
     def to_fumen(self):
         """Return a fumen with current field/seq (since field will be modified during T-spins, etc.)."""
-        fixed_colors = [[[0, 8, 1, 3][b] for b in row]
-                        for row in self.field.field]
+        fixed_colors = [[[0, 8, 1, 3][b] for b in row] for row in self.field.field]
         return fumen.encode([(fixed_colors, self.sequence)])
 
 
@@ -159,8 +154,7 @@ class TetSetup:
 
     def get_fumen(self, comment):
         """Encode setup's field as a fumen diagram for inputting to sfinder."""
-        fixed_colors = [[[0, 8, 1, 3][b] for b in row]
-                        for row in self.solution.field.field]
+        fixed_colors = [[[0, 8, 1, 3][b] for b in row] for row in self.solution.field.field]
         return fumen.encode([(fixed_colors, comment)])
 
     def add_continuations(self, setups):
@@ -178,10 +172,7 @@ class TetSetup:
             for cont in tqdm(self.continuations, unit="continuation"):
                 cont.find_continuations(setup_func)
             # remove setups with no continuations
-            self.continuations = [
-                setup for setup in self.continuations
-                if len(setup.continuations) > 0
-            ]
+            self.continuations = [setup for setup in self.continuations if len(setup.continuations) > 0]
         else:
             new_conts = setup_func(self.solution.field)
             self.add_continuations(new_conts)
@@ -206,15 +197,11 @@ class TetSetup:
                 self.PC_rate = 0.00
                 return False
             # sort continuations by PC rate (descending)
-            self.continuations = sorted(
-                self.continuations,
-                key=(lambda cont: cont.PC_rate),
-                reverse=True)
+            self.continuations = sorted(self.continuations, key=(lambda cont: cont.PC_rate), reverse=True)
             self.PC_rate = max([cont.PC_rate for cont in self.continuations])
             # if best PC is 100%, count number of 100%s for sorting (make sure to adjust for this if it is ever displayed)
             if self.PC_rate == 100.00:
-                self.PC_rate += [cont.PC_rate for cont in self.continuations
-                                 ].count(100.00) - 1
+                self.PC_rate += [cont.PC_rate for cont in self.continuations].count(100.00) - 1
         else:
             # note: changing solution.fumen to solution.to_fumen() might invalidate old cache results
             try:
@@ -226,9 +213,7 @@ class TetSetup:
                     sf = sfinder.SFinder()
                     self.PC_rate = float(
                         sf.percent(
-                            self.solution.to_fumen(),
-                            self.solution.get_remaining_pieces(),
-                            height,
+                            self.solution.to_fumen(), self.solution.get_remaining_pieces(), height,
                             use_cache=use_cache))
             except:
                 print("Problem cont: " + self.solution.tostring())
