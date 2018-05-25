@@ -3,7 +3,8 @@
 import os, re, subprocess
 from lxml import html, etree
 from setupfinder.finder.tet import TetSolution, TetField
-from setupfinder.finder import cache, fumen
+from setupfinder.finder import cache
+from setupfinder.finder.fumen import decode as fumen_decode
 import base64  #for image generation
 from copy import deepcopy
 from pathlib import Path
@@ -12,29 +13,51 @@ from pathlib import Path
 SFINDER_VER = "solution-finder-0.511"
 
 
+def memoize(func):
+    def wrapper(self, *args, **kwargs):
+        """ if func.__name__ == "percent":
+            print(f"Cache: {str(self.cache)[:30]}")
+            key = func.__name__ + kwargs['fumen']
+            print(f"Key: {key}")
+            print(f"Result: {self.cache[key]}") """
+        if self.cache is not None and 'fumen' in kwargs:
+            key = func.__name__ + kwargs['fumen']
+            if 'pieces' in kwargs:
+                key += kwargs['pieces']
+            if key in self.cache:
+                # return a copy so cache isn't mutated
+                return deepcopy(self.cache[key])
+            else:
+                # store result in cache
+                result = func(self, *args, **kwargs)
+                self.cache[key] = result
+                return deepcopy(result)
+        else:
+            # no cache or no fumen argument passed
+            return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class SFinder:
-    def __init__(self, working_dir=None):
+    def __init__(self, setup_cache=None, working_dir=None):
         if working_dir is not None:
             self.working_dir = working_dir
         else:
             self.working_dir = Path.cwd() / SFINDER_VER
+        self.cache = setup_cache
 
-    def setup(self, fumen=None, pieces=None, input_diagram=None, print_results=False, use_cache=None):
+    @memoize
+    def setup(self, fumen=None, pieces=None, input_diagram=None, print_results=False):
         """Run sfinder setup command, return setups.
         
         Returns a list of TetSolutions.
         """
-        if use_cache is not None and fumen is not None:
-            # first try new cache
-            if fumen in use_cache:
-                # return a copy so cache doesn't get mutated by addT
-                return deepcopy(use_cache[fumen])
+        # old cache
+        if fumen is not None:
             cached_result = cache.get_solutions(fumen)
             if cached_result is not None:
-                # store value in new cache
-                use_cache[fumen] = cached_result
-                # return a copy so cache doesn't get mutated by addT
-                return deepcopy(use_cache[fumen])
+                return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if fumen:
             args.extend(["-t", fumen])
@@ -66,10 +89,6 @@ class SFinder:
                                     TetField(from_string=field_str),
                                     child[0].attrib["href"].split("fumen.zui.jp/?")[1],
                                     child[0].text))
-                if use_cache is not None:
-                    # need to test this
-                    use_cache[fumen] = deepcopy(solutions)
-                    cache.save_solutions(fumen, solutions)
                 print(f"Returning: {solutions}")
                 return solutions
             else:
@@ -79,23 +98,21 @@ class SFinder:
         except subprocess.CalledProcessError as e:
             if "Should specify equal to or more than" in e.output:
                 # not enough pieces to even try finding setups, return None
-                use_cache[fumen] = None
+                #use_cache[fumen] = None
                 return None
             else:
                 raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
 
-    def path(self, fumen=None, pieces=None, height=None, use_cache=None):
+    @memoize
+    def path(self, fumen=None, pieces=None, height=None):
         """Run sfinder path command, returns a list of solution fumens.
         
         Note: Doesn't parse sequences possible for each fumen, could add this later. (Might want to change to parsing csv for that?)"""
-        if use_cache is not None and fumen is not None and pieces is not None:
+        if fumen is not None and pieces is not None:
             key = "p" + pieces + fumen
-            if key in use_cache:
-                return deepcopy(use_cache[key])
             cached_result = cache.get_solutions(key)
             if cached_result is not None:
-                use_cache[key] = cached_result
-                return deepcopy(use_cache[key])
+                return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "path"]
         if fumen:
             args.extend(["-t", fumen])
@@ -116,11 +133,9 @@ class SFinder:
                 solutions = []
                 for div in divs:
                     fumen_str = div[0].attrib["href"].split("fumen.zui.jp/?")[1]
-                    field, seq = fumen.decode(fumen_str)
+                    field, seq = fumen_decode(fumen_str)
                     # actually kind of silly saving field at all considering it's just cleared lines, but whatever
                     solutions.append(TetSolution(TetField(from_list=field), fumen_str, seq))
-                if use_cache:
-                    cache.save_solutions("p" + pieces + fumen, solutions)
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception
@@ -129,17 +144,15 @@ class SFinder:
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
 
-    def percent(self, fumen=None, pieces=None, height=None, use_cache=None):
+    @memoize
+    def percent(self, fumen=None, pieces=None, height=None):
         """Run sfinder percent command, return overall success rate (just the number)"""
-        if use_cache is not None and fumen is not None and pieces is not None:
+        if fumen is not None and pieces is not None:
             # "r" for rate, I'll use "p" if I implement path later on
             key = "r" + pieces + fumen
-            if key in use_cache:
-                return deepcopy(use_cache[key])
             cached_result = cache.get_PC_rate(key)
             if cached_result is not None:
-                use_cache[key] = cached_result
-                return deepcopy(use_cache[key])
+                return cached_result
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "percent"]
         if fumen:
             args.extend(["-t", fumen])
@@ -153,8 +166,6 @@ class SFinder:
             match = re.search(r"success = (\d+\.\d+)%", output)
             if match:
                 pc_rate = match.group(1)
-                if use_cache:
-                    cache.save_PC_rate("r" + pieces + fumen, pc_rate)
                 return pc_rate
             else:
                 raise RuntimeError("Couldn't find percentage in sfinder output.\n\n" + output)

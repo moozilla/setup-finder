@@ -65,6 +65,7 @@ def setups_from_input(working_dir):
     with open(working_dir / "input.txt", "r") as input_file:
         bags = input_file.read().splitlines()
 
+    print("Initializing...")
     # using f in a with statement to initialize/output cache
     with finder.Finder() as f:
         # should generate title from setup results
@@ -93,7 +94,7 @@ def setups_from_input(working_dir):
         # image height is hardcoded for now (can I do something like determine max height at each step?)
         if f.pc_finish:
             output.output_results_pc(
-                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7)
+                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7, f.cache)
         else:
             output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
     print("Done.", end=' ')

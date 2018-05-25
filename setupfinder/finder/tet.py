@@ -184,13 +184,9 @@ class TetSetup:
         """
         if len(self.continuations) > 0:
             # find PCs for all continuations, filter out continuations without PCs
-            try:
-                self.continuations = list(
-                    filter(lambda cont: cont.find_PCs(height, cutoff, use_cache),
-                           tqdm(self.continuations, unit="PC", leave=False)))
-            except:
-                print("Parent of problem cont: " + self.solution.tostring())
-                raise
+            self.continuations = list(
+                filter(lambda cont: cont.find_PCs(height, cutoff, use_cache),
+                       tqdm(self.continuations, unit="PC", leave=False)))
             if len(self.continuations) == 0:
                 # no PCs found
                 self.PC_rate = 0.00
@@ -202,21 +198,15 @@ class TetSetup:
             if self.PC_rate == 100.00:
                 self.PC_rate += [cont.PC_rate for cont in self.continuations].count(100.00) - 1
         else:
-            # note: changing solution.fumen to solution.to_fumen() might invalidate old cache results
-            try:
-                if self.solution.field.height > int(height):
-                    # stack too high for desired PC, don't even try
-                    self.PC_rate = 0.00
-                else:
-                    #with sfinder.SFinder() as sf:
-                    sf = sfinder.SFinder()
-                    self.PC_rate = float(
-                        sf.percent(
-                            self.solution.to_fumen(), self.solution.get_remaining_pieces(), height,
-                            use_cache=use_cache))
-            except:
-                print("Problem cont: " + self.solution.tostring())
-                raise
+            if self.solution.field.height > int(height):
+                # stack too high for desired PC, don't even try
+                self.PC_rate = 0.00
+            else:
+                #with sfinder.SFinder() as sf:
+                sf = sfinder.SFinder(setup_cache=use_cache)
+                self.PC_rate = float(
+                    sf.percent(
+                        fumen=self.solution.to_fumen(), pieces=self.solution.get_remaining_pieces(), height=height))
         return self.PC_rate >= cutoff
 
     def tostring(self, cont=False):

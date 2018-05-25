@@ -14,7 +14,7 @@ working_dir = Path.cwd() / "output"
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
-def output_results_pc(setups, title, pc_height, pc_cutoff, img_height):
+def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache):
     skin = get_blocks_from_skin(working_dir / "block.png")
     with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
@@ -25,8 +25,7 @@ def output_results_pc(setups, title, pc_height, pc_cutoff, img_height):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
-                    generate_output_pc(setup, "Setup %d" % i, pc_cutoff,
-                                       pc_height, img_height, skin)
+                    generate_output_pc(setup, "Setup %d" % i, pc_cutoff, pc_height, img_height, skin, cache)
         output_file.write(d.render())
 
 
@@ -41,8 +40,7 @@ def output_results(setups, title, img_height, conts_to_display):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
-                    generate_output(setup, ("Setup %d" % i), img_height,
-                                    conts_to_display, skin)
+                    generate_output(setup, ("Setup %d" % i), img_height, conts_to_display, skin)
         output_file.write(d.render())
 
 
@@ -57,8 +55,7 @@ def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
         # but I'm not sure what to do if more continuatons than 26, maybe just AA, then AAA
         new_ctd = conts_to_display - 1 if conts_to_display > 1 else 1
         for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
-            generate_output(s, title + (" - Sub-Setup %d" % i), img_height,
-                            new_ctd, skin, new_imgs)
+            generate_output(s, title + (" - Sub-Setup %d" % i), img_height, new_ctd, skin, new_imgs)
     else:
         h2(title)
         with div():
@@ -74,36 +71,26 @@ def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
             text("Showing ")
             b("%d" % min(conts_to_display, total_conts))
             text(" of ")
-            b(
-                a("%d continuations" % total_conts,
-                  href=fumen_url + setup.to_fumen()))
+            b(a("%d continuations" % total_conts, href=fumen_url + setup.to_fumen()))
 
 
-def generate_output_pc(setup,
-                       title,
-                       pc_cutoff,
-                       pc_height,
-                       img_height,
-                       skin,
-                       imgs=[]):
-    sf = SFinder()
+def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cache, imgs=[]):
     #not the penultimate bag, need to go deeper
     if len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
         new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
         for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
-            generate_output_pc(s, title + (" - Sub-Setup %d" % i), pc_cutoff,
-                               pc_height, img_height, skin, new_imgs)
+            generate_output_pc(s, title + (" - Sub-Setup %d" % i), pc_cutoff, pc_height, img_height, skin, cache,
+                               new_imgs)
     else:
+        sf = SFinder(setup_cache=cache)
         h2(title)
         with div():
             best_continuation = setup.continuations[0].solution
             best_pc = sf.path(
-                fumen=best_continuation.to_fumen(),
-                pieces=best_continuation.get_remaining_pieces(),
-                height=pc_height,
-                use_cache={})[0]  #todo: hack! change this when i fix cache
+                fumen=best_continuation.to_fumen(), pieces=best_continuation.get_remaining_pieces(),
+                height=pc_height)[0]  #todo: hack! change this when i fix cache
 
             for url in imgs:
                 img(src=url)
@@ -114,7 +101,5 @@ def generate_output_pc(setup,
             text("Best continuation: ")
             b("%.2f%%" % setup.continuations[0].PC_rate)
             text(" PC success rate – ")
-            b(
-                a("%d continuations" % len(setup.continuations),
-                  href=fumen_url + setup.to_fumen()))
+            b(a("%d continuations" % len(setup.continuations), href=fumen_url + setup.to_fumen()))
             text("with >%.2f%% PC success rate" % pc_cutoff)
