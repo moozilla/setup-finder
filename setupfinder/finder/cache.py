@@ -8,6 +8,7 @@ from pathlib import Path
 
 #working_dir = "%s\\..\\%s" % (getcwd(), "cache")
 working_dir = Path.cwd() / "cache"
+backup_dir = Path.cwd() / "notes" / "old_cache"
 
 
 def get_cache_file(fm):
@@ -15,15 +16,19 @@ def get_cache_file(fm):
     # strip version str, strip ?, replace / with _ to make it safe for filenames
     # note: on windows filenames are case insensitive so collisions could occur, but this probably will never happen
     clean = fm.replace("v115@", "").replace("?", "").replace("/", "_").replace("*", "_")
-    return working_dir / (clean + ".txt")
+    #return working_dir / (clean + ".txt")
+    return clean + ".txt"
 
 
 def get_solutions(fm):
     """Attempt to retrieve solutions from cache."""
     fname = get_cache_file(fm)
-    if isfile(fname):
-        with open(fname, "r") as cacheFile:
-            sols = cacheFile.read().splitlines()
+    cache_file = Path(working_dir / fname)
+    if cache_file.exists():
+        with cache_file.open() as f:
+            sols = f.read().splitlines()
+        # move to backup of old caches
+        cache_file.rename(backup_dir / fname)
         solutions = []
         for sol in sols:
             field, seq = fumen.decode(sol)
@@ -33,7 +38,7 @@ def get_solutions(fm):
         return None
 
 
-def save_solutions(fm, solutions):
+'''def save_solutions(fm, solutions):
     """Save solutions in cache."""
     sols = "\n".join(map(lambda sol: sol.fumen, solutions))
     with open(get_cache_file(fm), "w+") as cacheFile:
@@ -43,15 +48,17 @@ def save_solutions(fm, solutions):
 def save_PC_rate(fm, rate):
     """Save PC rate in cache."""
     with open(get_cache_file(fm), "w+") as cacheFile:
-        cacheFile.write(rate)
+        cacheFile.write(rate)'''
 
 
 def get_PC_rate(fm):
     """Attempt to retrieve PC rate from cache."""
     fname = get_cache_file(fm)
-    if isfile(fname):
-        with open(fname, "r") as cacheFile:
-            rate = cacheFile.read()
+    cache_file = Path(working_dir / fname)
+    if cache_file.exists():
+        with cache_file.open() as f:
+            rate = f.read()
+        cache_file.rename(backup_dir / fname)
         return rate
     else:
         return None
