@@ -14,8 +14,8 @@ working_dir = Path.cwd() / "output"
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
-def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache):
-    skin = get_blocks_from_skin(working_dir / "block.png")
+def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache, skin_file):
+    skin = get_blocks_from_skin(skin_file)
     with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
         d += h1(title)
@@ -29,8 +29,8 @@ def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache):
         output_file.write(d.render())
 
 
-def output_results(setups, title, img_height, conts_to_display):
-    skin = get_blocks_from_skin(working_dir / "block.png")
+def output_results(setups, title, img_height, conts_to_display, skin_file):
+    skin = get_blocks_from_skin(skin_file)
     with open(working_dir / "output.html", "w+") as output_file:
         d = document(title=title)
         d += h1(title)

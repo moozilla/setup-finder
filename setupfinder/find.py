@@ -4,6 +4,8 @@ This will start as an extension to newjade's solution-finder and hopefully becom
 Current sfinder version: solution-finder-0.511
 """
 
+import argparse
+import sys
 from pathlib import Path
 import time
 import logging
@@ -58,7 +60,7 @@ def parse_input_line(bag):
     }
 
 
-def setups_from_input(input_file, cache_file, pack_cache):
+def setups_from_input(input_file, cache_file, pack_cache, skin_file):
     timer_start = time.perf_counter()
 
     #check if input file exists...
@@ -67,7 +69,7 @@ def setups_from_input(input_file, cache_file, pack_cache):
 
     print("Initializing cache...")
     # using f in a with statement to initialize/output cache
-    with finder.Finder(cache_file, pack_cache=False) as f:
+    with finder.Finder(cache_file, pack_cache=pack_cache) as f:
         # should generate title from setup results
         title = ""  #title/heading of output.html
         for i, bag in enumerate(bags):
@@ -94,9 +96,11 @@ def setups_from_input(input_file, cache_file, pack_cache):
         # image height is hardcoded for now (can I do something like determine max height at each step?)
         if f.pc_finish:
             output.output_results_pc(
-                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7, f.cache)
+                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7, f.cache,
+                skin_file)
         else:
-            output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
+            output.output_results(
+                sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4, skin_file)
         print("Saving cache...")
     print("Done.", end=' ')
     print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
@@ -104,11 +108,19 @@ def setups_from_input(input_file, cache_file, pack_cache):
 
 def main():
     """Entry point for command-line."""
-    #working_dir = Path.cwd()
-    #with warnings.catch_warnings():
-    #warnings.simplefilter("ignore", TqdmSynchronisationWarning)
+    parser = argparse.ArgumentParser(description="Find Tetris setups.")
+    parser.add_argument("-i", "--input", dest="input_file", help="location of input file", default="input.txt")
+    parser.add_argument(
+        "-s",
+        "--skin",
+        dest="skin_file",
+        help="location of block skin (for images in output.html)",
+        default="default.png")
+    parser.add_argument("--cache", dest="cache_file", help="location of cache file", default="cache.bin")
+    parser.add_argument("--pack", dest="pack_cache", help="location of cache file", action="store_true")
+    args = parser.parse_args(sys.argv[1:])
     try:
-        setups_from_input(Path("input.txt"), Path("cache.bin"), True)
+        setups_from_input(Path(args.input_file), Path(args.cache_file), args.pack_cache, Path(args.skin_file))
     except Exception as e:
         if __debug__:
             raise
