@@ -58,16 +58,16 @@ def parse_input_line(bag):
     }
 
 
-def setups_from_input(working_dir):
+def setups_from_input(input_file, cache_file, pack_cache):
     timer_start = time.perf_counter()
 
     #check if input file exists...
-    with open(working_dir / "input.txt", "r") as input_file:
-        bags = input_file.read().splitlines()
+    with open(input_file, "r") as f:
+        bags = f.read().splitlines()
 
-    print("Initializing...")
+    print("Initializing cache...")
     # using f in a with statement to initialize/output cache
-    with finder.Finder() as f:
+    with finder.Finder(cache_file, pack_cache=False) as f:
         # should generate title from setup results
         title = ""  #title/heading of output.html
         for i, bag in enumerate(bags):
@@ -97,17 +97,18 @@ def setups_from_input(working_dir):
                 sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7, f.cache)
         else:
             output.output_results(sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4)
+        print("Saving cache...")
     print("Done.", end=' ')
     print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
 
 
 def main():
     """Entry point for command-line."""
-    working_dir = Path.cwd()
+    #working_dir = Path.cwd()
     #with warnings.catch_warnings():
     #warnings.simplefilter("ignore", TqdmSynchronisationWarning)
     try:
-        setups_from_input(working_dir)
+        setups_from_input(Path("input.txt"), Path("cache.bin"), True)
     except Exception as e:
         if __debug__:
             raise
@@ -115,5 +116,5 @@ def main():
         logging.exception(e)
         print(f"Error: {e}")
         print(
-            f"See error.log for more details. Please consider opening an issue at: https://github.com/moozilla/setup-finder/issues"
+            "See error.log for more details. Please consider opening an issue at: https://github.com/moozilla/setup-finder/issues"
         )

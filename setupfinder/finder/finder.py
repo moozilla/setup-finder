@@ -5,6 +5,7 @@ Input and output should be done by the scripts themselves and then passed into a
 
 from copy import deepcopy
 from pathlib import Path
+import gzip
 import pickle
 import colorama  # so tqdm looks good on windows
 from tqdm import tqdm
@@ -200,24 +201,33 @@ def get_setup_func(args, find_mirrors=False, setup_cache=None):
 
 
 class Finder:
-    def __init__(self):
+    def __init__(self, cache_file, pack_cache=False):
         self.setups = []
         self.pc_finish = False
         # these are used in generating PC paths in output, if "best_pc" is found here these could be removed
         self.pc_height = None
         self.pc_cutoff = None
         self.cache = {}  #initialize cache here
-        self.cache_file = Path.cwd() / "cache.bin"
+        self.cache_file = cache_file
+        self.pack_cache = pack_cache  # if cache should be gzipped when saved
 
     def __enter__(self):
         """When used in a context-manager, load sfinder result cache from cache.bin."""
         if self.cache_file.exists():  # pylint: disable=E1101
             with open(self.cache_file, "rb") as f:
-                self.cache = pickle.load(f)
+                # test magic bytes to see if cache is packed with gzip
+                is_gzipped = f.read(2) == b'\x1f\x8b'
+                # return to start of stream
+                f.seek(0)
+                if is_gzipped:
+                    self.cache = pickle.load(gzip.GzipFile(fileobj=f))
+                else:
+                    self.cache = pickle.load(f)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        with open(self.cache_file, "wb") as f:
+        open_func = gzip.open if self.pack_cache else open
+        with open_func(self.cache_file, "wb") as f:
             pickle.dump(self.cache, f, protocol=pickle.HIGHEST_PROTOCOL)
         return False  # don't supress any exceptions
 
