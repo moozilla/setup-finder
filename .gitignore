@@ -2,6 +2,10 @@
 .vscode/
 __pycache__/
 *.egg-info/
+build/
+dist/
+# pyinstall spec
+*.spec
 # setup-finder generated stuff + solution-finder install
 solution-finder-0.511/
 cache/*
