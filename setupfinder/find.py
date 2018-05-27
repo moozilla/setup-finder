@@ -61,6 +61,15 @@ def parse_input_line(bag):
 
 
 def setups_from_input(input_file, cache_file, pack_cache, skin_file):
+    if not (input_file).exists():
+        raise FileNotFoundError(f"Input file not found. Specify one with --input or create one at: {input_file}")
+    if not (skin_file).exists():
+        raise FileNotFoundError(f"Skin file not found. Specify one with --skin or create one at: {skin_file}")
+    output_dir = Path.cwd() / "output"  # enable setting this?
+    if not output_dir.exists():  # pylint: disable=E1101
+        output_dir.mkdir(parents=True, exist_ok=True)  # pylint: disable=E1101
+    output_file = output_dir / "output.html"
+
     timer_start = time.perf_counter()
 
     #check if input file exists...
@@ -95,12 +104,12 @@ def setups_from_input(input_file, cache_file, pack_cache, skin_file):
         print("Generating output file...")
         # image height is hardcoded for now (can I do something like determine max height at each step?)
         if f.pc_finish:
-            output.output_results_pc(
-                sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title, f.pc_height, f.pc_cutoff, 7, f.cache,
-                skin_file)
+            output.output_results_pc(output_file, sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title,
+                                     f.pc_height, f.pc_cutoff, 7, f.cache, skin_file)
         else:
-            output.output_results(
-                sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True), title, 7, 4, skin_file)
+            output.output_results(output_file, sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True),
+                                  title, 7, 4, skin_file)
+        print(f"Output saved to {output_file}.")
         print("Saving cache...")
     print("Done.", end=' ')
     print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
@@ -122,11 +131,15 @@ def main():
     try:
         setups_from_input(Path(args.input_file), Path(args.cache_file), args.pack_cache, Path(args.skin_file))
     except Exception as e:
-        if __debug__:
-            raise
+        #if __debug__:
+        #    raise
         logging.basicConfig(filename='error.log', level=logging.ERROR)
         logging.exception(e)
-        print(f"Error: {e}")
-        print(
-            "See error.log for more details. Please consider opening an issue at: https://github.com/moozilla/setup-finder/issues"
-        )
+        print(f"\nError: {e}")
+        print("See error.log for more details. If you think this may be a bug, please consider opening an issue at: " +
+              "https://github.com/moozilla/setup-finder/issues")
+
+
+# need this part so script works when build into an EXE file with PyInstaller
+if __name__ == "__main__":
+    main()

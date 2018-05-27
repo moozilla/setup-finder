@@ -14,9 +14,9 @@ working_dir = Path.cwd() / "output"
 fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
 
 
-def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache, skin_file):
+def output_results_pc(output_file, setups, title, pc_height, pc_cutoff, img_height, cache, skin_file):
     skin = get_blocks_from_skin(skin_file)
-    with open(working_dir / "output.html", "w+") as output_file:
+    with open(output_file, "w+") as f:
         d = document(title=title)
         d += h1(title)
         d += p("%d setups found" % len(setups))
@@ -26,12 +26,12 @@ def output_results_pc(setups, title, pc_height, pc_cutoff, img_height, cache, sk
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
                     generate_output_pc(setup, "Setup %d" % i, pc_cutoff, pc_height, img_height, skin, cache)
-        output_file.write(d.render())
+        f.write(d.render())
 
 
-def output_results(setups, title, img_height, conts_to_display, skin_file):
+def output_results(output_file, setups, title, img_height, conts_to_display, skin_file):
     skin = get_blocks_from_skin(skin_file)
-    with open(working_dir / "output.html", "w+") as output_file:
+    with open(output_file, "w+") as f:
         d = document(title=title)
         d += h1(title)
         d += p("%d setups found" % len(setups))
@@ -41,7 +41,7 @@ def output_results(setups, title, img_height, conts_to_display, skin_file):
                 warnings.simplefilter("ignore", TqdmSynchronisationWarning)
                 for i, setup in enumerate(tqdm(setups, unit="setup")):
                     generate_output(setup, ("Setup %d" % i), img_height, conts_to_display, skin)
-        output_file.write(d.render())
+        f.write(d.render())
 
 
 def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
@@ -54,7 +54,7 @@ def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
         # this naming scheme could get messy, anything better? maybe Setup 1-A-A?
         # but I'm not sure what to do if more continuatons than 26, maybe just AA, then AAA
         new_ctd = conts_to_display - 1 if conts_to_display > 1 else 1
-        for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
+        for i, s in enumerate(tqdm(setup.continuations, unit="setup", leave=False)):
             generate_output(s, title + (" - Sub-Setup %d" % i), img_height, new_ctd, skin, new_imgs)
     else:
         h2(title)
@@ -80,7 +80,7 @@ def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cac
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
         new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
-        for i, s in enumerate(tqdm(setup.continuations, unit="setup")):
+        for i, s in enumerate(tqdm(setup.continuations, unit="setup", leave=False)):
             generate_output_pc(s, title + (" - Sub-Setup %d" % i), pc_cutoff, pc_height, img_height, skin, cache,
                                new_imgs)
     else:

@@ -45,6 +45,8 @@ class SFinder:
             self.working_dir = working_dir
         else:
             self.working_dir = Path.cwd() / SFINDER_VER
+        if not (self.working_dir / "sfinder.jar").exists():
+            raise FileNotFoundError(f"Cannot find sfinder.jar. Sfinder should be installed in: {self.working_dir}")
         self.cache = setup_cache
 
     @memoize
@@ -89,7 +91,6 @@ class SFinder:
                                     TetField(from_string=field_str),
                                     child[0].attrib["href"].split("fumen.zui.jp/?")[1],
                                     child[0].text))
-                print(f"Returning: {solutions}")
                 return solutions
             else:
                 #only happens if it doesnt report 0 solutions - so never? maybe should raise exception
