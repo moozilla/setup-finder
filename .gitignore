@@ -13,6 +13,7 @@ output.txt
 output/*
 cache.bin
 input.txt
+default.png
 error.log
 # personal folder
 notes/
