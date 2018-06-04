@@ -45,16 +45,6 @@ def test_find_placement(fields):
     assert l_loc == (5, 0, 0)
 
 
-def test_is_bag_possible(fields):
-    test_field = fields[2]  # albatross without T
-    # should work with only harddrop
-    for bag in ["SOLIZJ", "OSILJZ", "ILJOZS"]:
-        assert setupfinder.analysis.is_bag_possible(test_field, bag) == True
-    # fail with only harddrop, would work with hold
-    for bag in ["SZOLJI", "OSIJLZ", "ILJSZO"]:
-        assert setupfinder.analysis.is_bag_possible(test_field, bag) == False
-
-
 def test_is_harddrop_possible():
     """ Unit tests for is_harddrop_possible.
     successes:
@@ -155,3 +145,43 @@ def test_place_piece():
         setupfinder.analysis.place_piece(piece, placement, field)
     encoded_field = fumen.encode([(field, "")])
     assert encoded_field == "v115@9gBtDewhilwwBtCewhglRpxwR4Bewhg0RpwwR4Cewh?i0JeAgH"
+
+
+def test_is_bag_possible(fields):
+    """Unit test is_bag_possible.
+     
+    Note: hold is not tested here, it should be tested in bag_coverage instead
+    """
+    test_field = fields[2]  # albatross without T
+    # should work with only harddrop
+    for bag in ["SOLIZJ", "OSILJZ", "ILJOZS"]:
+        assert setupfinder.analysis.is_bag_possible(test_field, bag) == True
+    # fail with only harddrop, would work with hold
+    for bag in ["SZOLJI", "OSIJLZ", "ILJSZO"]:
+        assert setupfinder.analysis.is_bag_possible(test_field, bag) == False
+    # should work with hold
+    #for bag in ["SZOLJI", "OSIJLZ", "ILJSZO"]:
+    #    assert setupfinder.analysis.is_bag_possible(test_field, bag, hold=True) == True
+
+
+def test_bag_coverage(fields):
+    """Unit test for bag_coverage."""
+    test_field = fields[2]  # albatross without T
+    coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS")
+    hold_coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS", hold=True)
+    mirror_coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS", hold=True, mirror=True)
+    assert coverage[0] < hold_coverage[0] < mirror_coverage[0]
+    assert coverage[1] == hold_coverage[1] == mirror_coverage[1]
+
+
+def test_find_hold_equivalent_bags():
+    """Unit test for find_hold_equivalent_bags."""
+    assert setupfinder.analysis.find_hold_equivalent_bags("STZ") == {'TZS', 'SZT', 'TSZ', 'STZ'}
+
+
+def test_mirrored(fields):
+    """Unit test for mirrored."""
+    mirror_dt = fumen.encode([(setupfinder.analysis.mirrored(fields[1]), "")])
+    mirror_alb = fumen.encode([(setupfinder.analysis.mirrored(fields[2]), "")])
+    assert mirror_dt == "v115@hgQ4BeAth0BewhAeR4Btg0CewhRpQ4AtA8g0Aehlwh?RpD8BeglwhE8CeglG8AeI8AeB8JeAgH"
+    assert mirror_alb == "v115@9gwhDeR4CewhilR4CeAtwhgli0RpAeBtwhCeg0RpAe?AtKeAgH"

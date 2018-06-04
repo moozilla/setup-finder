@@ -9,6 +9,7 @@ This module is intended to be used in conjunction with the finder module. It wil
 """
 
 from copy import deepcopy
+from itertools import permutations
 from setupfinder.finder import fumen
 
 PIECE_I = [[[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0],
@@ -176,27 +177,6 @@ def get_bounding_boxes(blocks, size):
                                                                        max(xs) - x_span + 1)]
 
 
-def is_bag_possible(field, bag):
-    """Determine if it's possible to perform setup with a particular bag.
-
-    For now this tests only if pieces can be harddropped in, with no hold.
-
-    Args:
-        field - in list form like other functions in this module
-        bag - string of pieces in order, eg. "TSOLIZJ"
-    Returns True or False
-    """
-    placements = find_placements(field)
-    #new_field = [[0] * 10 for _ in range(len(field))]
-    new_field = [[0] * 10 for _ in range(20)]
-    for piece in bag:
-        if not is_harddrop_possible(piece, placements[piece], new_field):
-            return False
-        # place piece into new_field
-        place_piece(piece, placements[piece], new_field)
-    return True
-
-
 def place_piece(piece, placement, field):
     """Update field by placing a piece.
 
@@ -255,10 +235,92 @@ def is_harddrop_possible(piece, placement, field):
     return True
 
 
+def is_bag_possible(field, bag):
+    """Determine if it's possible to perform setup with a particular bag.
+
+    For now this tests only if pieces can be harddropped in, with no hold.
+
+    Args:
+        field - in list form like other functions in this module
+        bag - string of pieces in order, eg. "TSOLIZJ"
+    Returns True or False
+    """
+    placements = find_placements(field)
+    #new_field = [[0] * 10 for _ in range(len(field))]
+    new_field = [[0] * 10 for _ in range(20)]
+    for piece in bag:
+        if not is_harddrop_possible(piece, placements[piece], new_field):
+            return False
+        else:
+            # place piece into new_field
+            place_piece(piece, placements[piece], new_field)
+    return True
+
+
+def find_hold_equivalent_bags(bag, held_piece=""):
+    """Return a set of bags that can be used to place pieces in a particular order using hold."""
+    if not bag:
+        if held_piece:
+            return [held_piece]
+        else:
+            return [""]
+    hold_result = find_hold_equivalent_bags(bag[1:], bag[0])
+    no_hold_result = find_hold_equivalent_bags(bag[1:], held_piece)
+    return set(held_piece + result for result in hold_result) | set(bag[0] + result for result in no_hold_result)
+
+
+def mirrored(field):
+    """Return a mirrored version of field.
+
+    This swaps rows from left-right and also swaps L/J and S/Z blocks.
+    Args:
+        field - Field in list-form
+    Returns:
+        Mirrored field in list-form
+    """
+    mirror_colors = [0, 1, 6, 3, 7, 5, 2, 4, 8]
+    return [[mirror_colors[block] for block in reversed(row)] for row in field]
+
+
+def bag_coverage(field, pieces="ILOZTJS", hold=False, mirror=False):
+    """Determine what percentage of bags can complete given setup.
+
+    Note: this uses sets instead of lists to avoid duplicate sequences at each step
+
+    Args:
+        field - The setup specified in list form.
+        (pieces) - Which pieces to consider, defaults to a bag with 1 of each piece.
+        (hold) - should bags that are equivalent under hold be counted?
+        (mirror) - should bags that can be completed in mirrored form be counted?
+    Returns:
+        tuple - (# Possible bags, # total bags)
+    """
+    bags = {''.join(p) for p in permutations(pieces)}
+    if not hold:
+        possible_bags = {
+            bag
+            for bag in bags if is_bag_possible(field, bag) or (mirror and is_bag_possible(mirrored(field), bag))
+        }
+    else:
+        bags_to_test = bags.copy()
+        possible_bags = set()
+        while bags_to_test:
+            bag = bags_to_test.pop()
+            if is_bag_possible(field, bag):
+                possible_bags = possible_bags | find_hold_equivalent_bags(bag)
+            if mirror and is_bag_possible(mirrored(field), bag):
+                possible_bags = possible_bags | find_hold_equivalent_bags(bag)
+
+    return (len(possible_bags), len(bags))
+
+
 def main():
     #albatross without T piece
     test_field, _ = fumen.decode("v115@AhBtDewhQ4CeBti0whR4AeRpilg0whAeQ4AeRpglCe?whJeAgl")
-    print(is_bag_possible(test_field, "SOLIZJ"))
+    print(bag_coverage(test_field, "ILOZJS"))
+    print(bag_coverage(test_field, "ILOZJS", hold=True))
+    print(bag_coverage(test_field, "ILOZJS", hold=True, mirror=True))
+    print(bag_coverage(test_field, "ILOZJS", hold=False, mirror=True))
 
 
 if __name__ == "__main__":
