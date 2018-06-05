@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 import time
 import logging
+import gzip
+import pickle
 #import warnings
 #from tqdm import tqdm, TqdmSynchronisationWarning
 from setupfinder import output
@@ -60,7 +62,14 @@ def parse_input_line(bag):
     }
 
 
-def setups_from_input(input_file, cache_file, pack_cache, skin_file):
+def setups_from_input(input_file, cache_file, pack_cache, skin_file, raw_file=None):
+    """Generate setups from input file and output them.
+
+    Defaults to outputting results to output.html using skin_file to make images.
+    If raw_file is passed, will instead save raw results in binary form in output/raw_file.
+
+    Note: raw_file is a string, not a Path like the other file args, because it will be appeneded to output_dir
+    """
     if not (input_file).exists():
         raise FileNotFoundError(f"Input file not found. Specify one with --input or create one at: {input_file}")
     if not (skin_file).exists():
@@ -102,17 +111,28 @@ def setups_from_input(input_file, cache_file, pack_cache, skin_file):
             print(f"Bag {i}: Found {len(f.setups)} valid setups")
 
         print("Generating output file...")
-        # image height is hardcoded for now (can I do something like determine max height at each step?)
-        if f.pc_finish:
-            output.output_results_pc(output_file, sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title,
-                                     f.pc_height, f.pc_cutoff, 7, f.cache, skin_file)
+        if raw_file:
+            raw_filename = output_dir / raw_file
+            save_raw_results(f, raw_filename)
+            print(f"Output saved to {raw_filename}.")
         else:
-            output.output_results(output_file, sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True),
-                                  title, 7, 4, skin_file)
-        print(f"Output saved to {output_file}.")
+            # image height is hardcoded for now (can I do something like determine max height at each step?)
+            if f.pc_finish:
+                output.output_results_pc(output_file, sorted(f.setups, key=(lambda s: s.PC_rate), reverse=True), title,
+                                         f.pc_height, f.pc_cutoff, 7, f.cache, skin_file)
+            else:
+                output.output_results(output_file, sorted(f.setups, key=(lambda s: len(s.continuations)), reverse=True),
+                                      title, 7, 4, skin_file)
+            print(f"Output saved to {output_file}.")
         print("Saving cache...")
     print("Done.", end=' ')
     print(f"(Total elapsed time: {time.perf_counter() - timer_start:.2f}sec)")
+
+
+def save_raw_results(finder_instance, raw_file):
+    """Save raw finder results to a file, for later analysis."""
+    with gzip.open(raw_file, "wb") as f:
+        pickle.dump(finder_instance, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def main():
@@ -126,10 +146,13 @@ def main():
         help="location of block skin (for images in output.html)",
         default="default.png")
     parser.add_argument("--cache", dest="cache_file", help="location of cache file", default="cache.bin")
-    parser.add_argument("--pack", dest="pack_cache", help="location of cache file", action="store_true")
+    parser.add_argument("--pack", dest="pack_cache", help="compress cache file", action="store_true")
+    parser.add_argument(
+        "-r", "--raw", dest="raw_file", help="save results in output/raw_file instead of output.html", default=None)
     args = parser.parse_args(sys.argv[1:])
     try:
-        setups_from_input(Path(args.input_file), Path(args.cache_file), args.pack_cache, Path(args.skin_file))
+        setups_from_input(
+            Path(args.input_file), Path(args.cache_file), args.pack_cache, Path(args.skin_file), raw_file=args.raw_file)
     except Exception as e:
         #if __debug__:
         #    raise

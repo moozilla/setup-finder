@@ -226,9 +226,10 @@ class Finder:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        open_func = gzip.open if self.pack_cache else open
-        with open_func(self.cache_file, "wb") as f:
-            pickle.dump(self.cache, f, protocol=pickle.HIGHEST_PROTOCOL)
+        if self.cache_file.exists():  # pylint: disable=E1101
+            open_func = gzip.open if self.pack_cache else open
+            with open_func(self.cache_file, "wb") as f:
+                pickle.dump(self.cache, f, protocol=pickle.HIGHEST_PROTOCOL)
         return False  # don't supress any exceptions
 
     def find_initial_setups(self, args):
