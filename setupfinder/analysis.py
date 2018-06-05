@@ -10,6 +10,12 @@ This module is intended to be used in conjunction with the finder module. It wil
 
 from copy import deepcopy
 from itertools import permutations
+# these 4 are temporary, should be refactored out
+import gzip
+import pickle
+from pathlib import Path
+from tqdm import tqdm
+#
 from setupfinder.finder import fumen
 
 PIECE_I = [[[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0],
@@ -246,8 +252,11 @@ def is_bag_possible(field, bag):
     Returns True or False
     """
     placements = find_placements(field)
-    #new_field = [[0] * 10 for _ in range(len(field))]
-    new_field = [[0] * 10 for _ in range(20)]
+    # strip all non-gray blocks from field
+    new_field = [[8 if block == 8 else 0 for block in row] for row in field]
+    # extend field height to 20
+    for __ in range(20 - len(new_field)):
+        new_field.append([0] * 10)
     for piece in bag:
         if not is_harddrop_possible(piece, placements[piece], new_field):
             return False
@@ -257,15 +266,15 @@ def is_bag_possible(field, bag):
     return True
 
 
-def find_hold_equivalent_bags(bag, held_piece=""):
+def hold_equivalent_bags(bag, held_piece=""):
     """Return a set of bags that can be used to place pieces in a particular order using hold."""
     if not bag:
         if held_piece:
             return [held_piece]
         else:
             return [""]
-    hold_result = find_hold_equivalent_bags(bag[1:], bag[0])
-    no_hold_result = find_hold_equivalent_bags(bag[1:], held_piece)
+    hold_result = hold_equivalent_bags(bag[1:], bag[0])
+    no_hold_result = hold_equivalent_bags(bag[1:], held_piece)
     return set(held_piece + result for result in hold_result) | set(bag[0] + result for result in no_hold_result)
 
 
@@ -282,45 +291,75 @@ def mirrored(field):
     return [[mirror_colors[block] for block in reversed(row)] for row in field]
 
 
-def bag_coverage(field, pieces="ILOZTJS", hold=False, mirror=False):
-    """Determine what percentage of bags can complete given setup.
+def bag_coverage(field, bags, hold=False, mirror=False):
+    """Determine what bags can be used to complete given setup.
 
     Note: this uses sets instead of lists to avoid duplicate sequences at each step
 
     Args:
         field - The setup specified in list form.
-        (pieces) - Which pieces to consider, defaults to a bag with 1 of each piece.
+        bags - list of strings, which bags should be testsed
         (hold) - should bags that are equivalent under hold be counted?
         (mirror) - should bags that can be completed in mirrored form be counted?
     Returns:
-        tuple - (# Possible bags, # total bags)
+        list of bags
     """
-    bags = {''.join(p) for p in permutations(pieces)}
-    if not hold:
-        possible_bags = {
-            bag
-            for bag in bags if is_bag_possible(field, bag) or (mirror and is_bag_possible(mirrored(field), bag))
-        }
-    else:
-        bags_to_test = bags.copy()
-        possible_bags = set()
-        while bags_to_test:
-            bag = bags_to_test.pop()
-            if is_bag_possible(field, bag):
-                possible_bags = possible_bags | find_hold_equivalent_bags(bag)
-            if mirror and is_bag_possible(mirrored(field), bag):
-                possible_bags = possible_bags | find_hold_equivalent_bags(bag)
 
-    return (len(possible_bags), len(bags))
+    holdless_bags = {
+        bag
+        for bag in bags if is_bag_possible(field, bag) or (mirror and is_bag_possible(mirrored(field), bag))
+    }
+    if not hold:
+        return holdless_bags
+    # out of remaining bags, find bags that work with hold if intersection of bags that work without hold
+    # and bags equivalent to the bag being tested is not null
+    hold_bags = {bag for bag in (bags - holdless_bags) if holdless_bags & hold_equivalent_bags(bag)}
+    return holdless_bags | hold_bags
+
+
+def all_bags(sequence):
+    """Return a list of all possible permutations of a given piece sequence."""
+    return {''.join(p) for p in permutations(sequence)}
+
+
+def systematize(setups):
+    """Return minimal set of setups that covers all possible bags with the best possible PC rate.
+
+    Note: for now, each setup in setups should only have continuations 1 deep, so it will work for
+          things like TSD->TSD->PC but not TSD->TSD->TSD->PC
+          Also not set up for testTSD yet
+
+    Args:
+        setups - list of TetSetups as return by finder, doesn't need to be sorted
+    Returns:
+        list of tuples of (setup, score) where score is coverage*PC_rate
+    """
+    setup = setups[0]
+    covered_bags = []
+    for cont in setup.continuations:
+        # get field and pieces from fumen, pieces shouldn't include T for tspin ones
+        field, pieces = fumen.decode(cont.solution.fumen)
+        bags = all_bags(pieces)
+        # don't mirror because it's not an initial bag
+        coverage = bag_coverage(field, bags, hold=True)
+        covered_bags.append(coverage)
+        print(f"{cont.solution.fumen}: {len(coverage)}/{len(bags)} bags")
 
 
 def main():
     #albatross without T piece
-    test_field, _ = fumen.decode("v115@AhBtDewhQ4CeBti0whR4AeRpilg0whAeQ4AeRpglCe?whJeAgl")
-    print(bag_coverage(test_field, "ILOZJS"))
-    print(bag_coverage(test_field, "ILOZJS", hold=True))
-    print(bag_coverage(test_field, "ILOZJS", hold=True, mirror=True))
-    print(bag_coverage(test_field, "ILOZJS", hold=False, mirror=True))
+    test_field, __ = fumen.decode("v115@AhBtDewhQ4CeBti0whR4AeRpilg0whAeQ4AeRpglCe?whJeAgl")
+    bags = all_bags("ILOZJS")
+    print(len(bag_coverage(test_field, bags)))
+    print(len(bag_coverage(test_field, bags, hold=True)))
+    print(len(bag_coverage(test_field, bags, hold=True, mirror=True)))
+    print(len(bag_coverage(test_field, bags, hold=False, mirror=True)))
+    """ test_file = Path("output/test.bin")  #saved TSD->TSD->PC results
+    # this part should be abstracted to some other module so i dont have to import gzip/pickle here?
+    with gzip.open(test_file) as f:
+        test_finder = pickle.load(f)
+    setups = sorted(test_finder.setups, key=(lambda s: s.PC_rate), reverse=True)
+    systematize(setups) """
 
 
 if __name__ == "__main__":

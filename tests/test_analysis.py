@@ -162,21 +162,14 @@ def test_is_bag_possible(fields):
     # should work with hold
     #for bag in ["SZOLJI", "OSIJLZ", "ILJSZO"]:
     #    assert setupfinder.analysis.is_bag_possible(test_field, bag, hold=True) == True
+    test_field = fields[1]  # dt cannon bag2 (bag with gray blocks)
+    for bag in ["JLSOZI", "LJSOZI", "IOSJLZ"]:
+        assert setupfinder.analysis.is_bag_possible(test_field, bag) == True
 
 
-def test_bag_coverage(fields):
-    """Unit test for bag_coverage."""
-    test_field = fields[2]  # albatross without T
-    coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS")
-    hold_coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS", hold=True)
-    mirror_coverage = setupfinder.analysis.bag_coverage(test_field, pieces="ILOZJS", hold=True, mirror=True)
-    assert coverage[0] < hold_coverage[0] < mirror_coverage[0]
-    assert coverage[1] == hold_coverage[1] == mirror_coverage[1]
-
-
-def test_find_hold_equivalent_bags():
-    """Unit test for find_hold_equivalent_bags."""
-    assert setupfinder.analysis.find_hold_equivalent_bags("STZ") == {'TZS', 'SZT', 'TSZ', 'STZ'}
+def test_hold_equivalent_bags():
+    """Unit test for hold_equivalent_bags."""
+    assert setupfinder.analysis.hold_equivalent_bags("STZ") == {'TZS', 'SZT', 'TSZ', 'STZ'}
 
 
 def test_mirrored(fields):
@@ -185,3 +178,24 @@ def test_mirrored(fields):
     mirror_alb = fumen.encode([(setupfinder.analysis.mirrored(fields[2]), "")])
     assert mirror_dt == "v115@hgQ4BeAth0BewhAeR4Btg0CewhRpQ4AtA8g0Aehlwh?RpD8BeglwhE8CeglG8AeI8AeB8JeAgH"
     assert mirror_alb == "v115@9gwhDeR4CewhilR4CeAtwhgli0RpAeBtwhCeg0RpAe?AtKeAgH"
+
+
+def test_all_bags():
+    """Unit test for all_bags."""
+    bags_6_pieces = setupfinder.analysis.all_bags("ILOZJS")
+    bags_7_pieces = setupfinder.analysis.all_bags("ILOZJST")
+    assert len(bags_6_pieces) == 720
+    assert len(bags_7_pieces) == 5040
+
+
+def test_bag_coverage(fields):
+    """Unit test for bag_coverage."""
+    test_field = fields[2]  # albatross without T
+    bags = setupfinder.analysis.all_bags("ILOZJS")
+    coverage = setupfinder.analysis.bag_coverage(test_field, bags)
+    hold_coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True)
+    mirror_coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True, mirror=True)
+    assert len(coverage) < len(hold_coverage) < len(mirror_coverage)
+    test_field, __ = fumen.decode("v115@zgglQ4Aeh0AtDeglR4g0BtDehlQ4g0AtCeRpB8zhAe?A8RpC8DeB8KeAgWGAv33LCzCBAA")
+    coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True)
+    assert 'LSZJOI' not in coverage
