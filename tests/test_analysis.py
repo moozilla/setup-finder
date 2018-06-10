@@ -134,6 +134,14 @@ def test_is_harddrop_possible():
     covered_i_piece = setupfinder.analysis.is_harddrop_possible("I", (0, -1, 0), test_field)
     assert covered_i_piece == False
 
+    # piece should still count as covered if blocks in it's bounding box are lower than
+    # the highest block in the piece (eg. with flat L piece in this test case)
+    test_field, __ = fumen.decode("v115@9gRpEeQ4AewhRpg0DeR4whB8i0BeA8Q4whC8DeB8wh?JeAgH")
+    for __ in range(20 - len(test_field)):
+        test_field.append([0] * 10)
+    covered_l_piece = setupfinder.analysis.is_harddrop_possible("L", (4, -1, 2), test_field)
+    assert covered_l_piece == False
+
 
 def test_place_piece():
     """Unit test for place_piece."""
@@ -165,6 +173,8 @@ def test_is_bag_possible(fields):
     test_field = fields[1]  # dt cannon bag2 (bag with gray blocks)
     for bag in ["JLSOZI", "LJSOZI", "IOSJLZ"]:
         assert setupfinder.analysis.is_bag_possible(test_field, bag) == True
+    test_field, __ = fumen.decode("v115@3gAtEeRpAeBtBeQ4AewhRpg0AtCeR4whB8i0AeglA8?Q4whC8AeilB8whJeAgWGAJNUFDKHBAA")
+    assert setupfinder.analysis.is_bag_possible(test_field, 'OJSILZ') == False
 
 
 def test_hold_equivalent_bags():
@@ -199,3 +209,12 @@ def test_bag_coverage(fields):
     test_field, __ = fumen.decode("v115@zgglQ4Aeh0AtDeglR4g0BtDehlQ4g0AtCeRpB8zhAe?A8RpC8DeB8KeAgWGAv33LCzCBAA")
     coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True)
     assert 'LSZJOI' not in coverage
+    test_field, __ = fumen.decode("v115@3gAtEeRpAeBtBeQ4AewhRpg0AtCeR4whB8i0AeglA8?Q4whC8AeilB8whJeAgWGAJNUFDKHBAA")
+    coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True)
+    assert 'ZOJSIL' not in coverage
+    # I should replace this with a simpler case that runs faster (this one takes ~3sec)
+    bags = setupfinder.analysis.all_bags("ILOZJST")
+    test_field, __ = fumen.decode("v115@0gi0FeRpglg0CeQ4AewhRpglCeAtR4whB8hlAeBtA8?Q4whC8BeAtAeB8whJeAgWGAJtjWCKHBAA")
+    coverage = setupfinder.analysis.bag_coverage(test_field, bags, hold=True, tspin=True)
+    assert 'OZSITJL' not in coverage
+    assert 'OZSITLJ' in coverage

@@ -42,6 +42,8 @@ PIECE_S = [[[7, 7, 0], [0, 7, 7], [0, 0, 0]], [[0, 0, 7], [0, 7, 7], [0, 7, 0]],
 
 PIECES = {'I': PIECE_I, 'L': PIECE_L, 'O': PIECE_O, 'Z': PIECE_Z, 'T': PIECE_T, 'J': PIECE_J, 'S': PIECE_S}
 
+PIECE_SIZE = {'I': 4, 'L': 3, 'O': 2, 'Z': 3, 'T': 3, 'J': 3, 'S': 3}
+
 
 # calculate valid placements for each piece/rotation
 # next with generator to find first column with filled block, if no filled block defaults to 5 (bigger than any piece)
@@ -216,6 +218,8 @@ def is_harddrop_possible(piece, placement, field):
     # make sure piece is not floating
     x, y, rotation = placement
     floating = True
+    # this list will determine what y-value to start cols above the piece (for checking if piece can be dropped in)
+    highest_block = [0] * PIECE_SIZE[piece]
     # attempt to place piece, and determine if it is floating
     for py, row in enumerate(PIECES[piece][rotation]):
         for px, block in enumerate(row):
@@ -229,14 +233,15 @@ def is_harddrop_possible(piece, placement, field):
                 # block is touching either bottom of the field or occupied space below it
                 if floating and (y + py == 0 or field[y + py - 1][x + px]):
                     floating = False
+                highest_block[px] = y + py
     if floating:
         return False
     # make sure piece can be dropped into place by checking that columns above are clear
-    # slice field above the top of the piece, then transpose into columns
-    field_cols_above_piece = list(zip(*field[y + MAX_Y_OFFSET[piece][rotation]:20]))
+    field_cols = list(zip(*field))
     for col in OCCUPIED_COLS[piece][rotation]:
         # if any block exists in cols above the piece, fail
-        if any(field_cols_above_piece[x + col]):
+        # slice col 1 above the highest piece block in that column
+        if any(field_cols[x + col][highest_block[col] + 1:]):
             return False
     return True
 
@@ -258,6 +263,9 @@ def is_bag_possible(field, bag):
     for __ in range(20 - len(new_field)):
         new_field.append([0] * 10)
     for piece in bag:
+        # got a piece that isn't specified in field
+        if not placements[piece]:
+            return False
         if not is_harddrop_possible(piece, placements[piece], new_field):
             return False
         else:
@@ -267,12 +275,21 @@ def is_bag_possible(field, bag):
 
 
 def hold_equivalent_bags(bag, held_piece=""):
-    """Return a set of bags that can be used to place pieces in a particular order using hold."""
+    """Return a set of bags that can be used to place pieces in a particular order using hold.
+    
+    Args:
+        bag - string of pieces (eg. "IOSTL")
+        held_piece - piece currently in hold
+    Returns:
+        set containing all possible bags that bag can be transformed into using hold
+    """
+    # base case, return held piece if it exists
     if not bag:
         if held_piece:
             return [held_piece]
         else:
             return [""]
+    # find results for if hold is used and if not, and return union of these
     hold_result = hold_equivalent_bags(bag[1:], bag[0])
     no_hold_result = hold_equivalent_bags(bag[1:], held_piece)
     return set(held_piece + result for result in hold_result) | set(bag[0] + result for result in no_hold_result)
@@ -291,7 +308,7 @@ def mirrored(field):
     return [[mirror_colors[block] for block in reversed(row)] for row in field]
 
 
-def bag_coverage(field, bags, hold=False, mirror=False):
+def bag_coverage(field, bags, hold=False, mirror=False, tspin=False):
     """Determine what bags can be used to complete given setup.
 
     Note: this uses sets instead of lists to avoid duplicate sequences at each step
@@ -301,14 +318,21 @@ def bag_coverage(field, bags, hold=False, mirror=False):
         bags - list of strings, which bags should be testsed
         (hold) - should bags that are equivalent under hold be counted?
         (mirror) - should bags that can be completed in mirrored form be counted?
+        (tspin) - force T piece to come last (for tspin)
     Returns:
         list of bags
     """
-
-    holdless_bags = {
-        bag
-        for bag in bags if is_bag_possible(field, bag) or (mirror and is_bag_possible(mirrored(field), bag))
-    }
+    if tspin:
+        holdless_bags = {
+            bag
+            for bag in bags if bag[-1] == "T" and is_bag_possible(field, bag[:-1]) or (
+                mirror and is_bag_possible(mirrored(field), bag[:-1]))
+        }
+    else:
+        holdless_bags = {
+            bag
+            for bag in bags if is_bag_possible(field, bag) or (mirror and is_bag_possible(mirrored(field), bag))
+        }
     if not hold:
         return holdless_bags
     # out of remaining bags, find bags that work with hold if intersection of bags that work without hold
@@ -335,31 +359,45 @@ def systematize(setups):
         list of tuples of (setup, score) where score is coverage*PC_rate
     """
     setup = setups[0]
-    covered_bags = []
-    for cont in setup.continuations:
+    bags = all_bags("IOTLJSZ")
+    """ coverages = []
+    for cont in tqdm(setup.continuations):
         # get field and pieces from fumen, pieces shouldn't include T for tspin ones
-        field, pieces = fumen.decode(cont.solution.fumen)
-        bags = all_bags(pieces)
+        field, __ = fumen.decode(cont.solution.fumen)
         # don't mirror because it's not an initial bag
-        coverage = bag_coverage(field, bags, hold=True)
-        covered_bags.append(coverage)
-        print(f"{cont.solution.fumen}: {len(coverage)}/{len(bags)} bags")
+        # will have to somehow store isTSpin in TetSetup for using in tspin=True arg
+        # should also have an option for Tetris...
+        coverage = bag_coverage(field, bags, hold=True, tspin=True)
+        coverages.append(coverage)
+        #adjusted_PC_rate = (len(coverage) * cont.PC_rate) / len(bags)
+        #print(f"{cont.solution.fumen}: {len(coverage)}/{len(bags)} bags, adj. PC rate: {adjusted_PC_rate:.2f}") """
+    covered_bags = set()
+    total_pc_rate = 0
+    for i, cont in enumerate(setup.continuations):
+        field, __ = fumen.decode(cont.solution.fumen)
+        coverage = bag_coverage(field, bags - covered_bags, hold=True, tspin=True)
+        new_bags = len(coverage - covered_bags)
+        covered_bags = covered_bags | coverage
+        total_pc_rate += new_bags * cont.PC_rate
+        print(
+            f"Adding {new_bags} new bags @ {cont.PC_rate}% - total {len(covered_bags)}/{len(bags)} = {total_pc_rate/len(bags):.2f}%"
+        )
 
 
 def main():
-    #albatross without T piece
+    """ #albatross without T piece
     test_field, __ = fumen.decode("v115@AhBtDewhQ4CeBti0whR4AeRpilg0whAeQ4AeRpglCe?whJeAgl")
     bags = all_bags("ILOZJS")
     print(len(bag_coverage(test_field, bags)))
     print(len(bag_coverage(test_field, bags, hold=True)))
     print(len(bag_coverage(test_field, bags, hold=True, mirror=True)))
-    print(len(bag_coverage(test_field, bags, hold=False, mirror=True)))
-    """ test_file = Path("output/test.bin")  #saved TSD->TSD->PC results
+    print(len(bag_coverage(test_field, bags, hold=False, mirror=True))) """
+    test_file = Path("output/test.bin")  #saved TSD->TSD->PC results
     # this part should be abstracted to some other module so i dont have to import gzip/pickle here?
     with gzip.open(test_file) as f:
         test_finder = pickle.load(f)
     setups = sorted(test_finder.setups, key=(lambda s: s.PC_rate), reverse=True)
-    systematize(setups) """
+    systematize(setups)
 
 
 if __name__ == "__main__":
