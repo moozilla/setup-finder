@@ -358,30 +358,28 @@ def systematize(setups):
     Returns:
         list of tuples of (setup, score) where score is coverage*PC_rate
     """
+    goal_rate = 90.0
     setup = setups[0]
+
     bags = all_bags("IOTLJSZ")
-    """ coverages = []
-    for cont in tqdm(setup.continuations):
-        # get field and pieces from fumen, pieces shouldn't include T for tspin ones
+    num_bags = len(bags)
+    covered_bags = set()
+    total_pc_rate = 0
+    for cont in setup.continuations:
         field, __ = fumen.decode(cont.solution.fumen)
         # don't mirror because it's not an initial bag
         # will have to somehow store isTSpin in TetSetup for using in tspin=True arg
         # should also have an option for Tetris...
+        # can't use (bags - covered_bags) or won't find some bags that use hold
         coverage = bag_coverage(field, bags, hold=True, tspin=True)
-        coverages.append(coverage)
-        #adjusted_PC_rate = (len(coverage) * cont.PC_rate) / len(bags)
-        #print(f"{cont.solution.fumen}: {len(coverage)}/{len(bags)} bags, adj. PC rate: {adjusted_PC_rate:.2f}") """
-    covered_bags = set()
-    total_pc_rate = 0
-    for i, cont in enumerate(setup.continuations):
-        field, __ = fumen.decode(cont.solution.fumen)
-        coverage = bag_coverage(field, bags - covered_bags, hold=True, tspin=True)
         new_bags = len(coverage - covered_bags)
         covered_bags = covered_bags | coverage
         total_pc_rate += new_bags * cont.PC_rate
         print(
-            f"Adding {new_bags} new bags @ {cont.PC_rate}% - total {len(covered_bags)}/{len(bags)} = {total_pc_rate/len(bags):.2f}%"
+            f"Adding {new_bags} new bags @ {cont.PC_rate}% - total {len(covered_bags)}/{len(bags)} = {total_pc_rate/num_bags:.2f}%"
         )
+        if (total_pc_rate / num_bags) > goal_rate or len(covered_bags) == num_bags:
+            break
 
 
 def main():
