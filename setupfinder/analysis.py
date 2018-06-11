@@ -275,7 +275,9 @@ def is_bag_possible(field, bag):
 
 
 def hold_equivalent_bags(bag, held_piece=""):
-    """Return a set of bags that can be used to place pieces in a particular order using hold.
+    """Return a set of all bags that bag can be transformed into using hold.
+
+    This is the first version of the function, kept for posterity. Use hold_eq_bags instead.
     
     Args:
         bag - string of pieces (eg. "IOSTL")
@@ -293,6 +295,30 @@ def hold_equivalent_bags(bag, held_piece=""):
     hold_result = hold_equivalent_bags(bag[1:], bag[0])
     no_hold_result = hold_equivalent_bags(bag[1:], held_piece)
     return set(held_piece + result for result in hold_result) | set(bag[0] + result for result in no_hold_result)
+
+
+def hold_eq_bags(bag):
+    """Return a set of all bags that bag can be transformed into using hold.
+
+    This is a rewrite of hold_equivalent_bags that doesn't use recursion, with performance in mind.
+    (Since a single call of systematize calls this ~200k times, it needs to be fast.)
+    This version is about 4x faster than the old version.
+
+    Args:
+        bag - a string of pieces (eg. "IOSTL")
+    Returns:
+        set of bag strings
+    """
+    results = [(bag, "", "")]
+    # for each piece in bag, try using hold and not using hold
+    # each iteration of this doubles the results
+    for __ in range(len(bag)):
+        results = [(remaining[1:], next_result, next_held) for remaining, result, held in results
+                   for next_result, next_held in ((result + remaining[0], held), (result + held, remaining[0]))]
+    # at this point all results are something like ('', 'ABC', ''), ('', 'AB', 'C')
+    # so we just need to combine the result with the piece in hold (which can be '') to get the final sequence
+    # using a set comprehension here removes duplicates
+    return {result + held for __, result, held in results}
 
 
 def mirrored(field):
@@ -337,7 +363,7 @@ def bag_coverage(field, bags, hold=False, mirror=False, tspin=False):
         return holdless_bags
     # out of remaining bags, find bags that work with hold if intersection of bags that work without hold
     # and bags equivalent to the bag being tested is not null
-    hold_bags = {bag for bag in (bags - holdless_bags) if holdless_bags & hold_equivalent_bags(bag)}
+    hold_bags = {bag for bag in (bags - holdless_bags) if holdless_bags & hold_eq_bags(bag)}
     return holdless_bags | hold_bags
 
 
