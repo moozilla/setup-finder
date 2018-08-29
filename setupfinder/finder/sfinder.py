@@ -143,7 +143,17 @@ class SFinder:
                 print("Error: Path didn't find any solutions\n\n" + output)
                 return None
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
+            pieces_error = re.search(r"Should specify equal to or more than (\d+) pieces: CurrentPieces=(\d+)",
+                                     e.output)
+            if pieces_error:
+                needed_pieces = int(pieces_error.group(1))
+                actual_pieces = int(pieces_error.group(2))
+                extra_pieces = needed_pieces - actual_pieces
+                new_pieces_str = f"{pieces},*p{extra_pieces}"
+                print(f"Not enough pieces to PC {fumen}, trying with {new_pieces_str}...")
+                return self.path(fumen=fumen, pieces=new_pieces_str, height=height)
+            else:
+                raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
 
     @memoize
     def percent(self, fumen=None, pieces=None, height=None):
@@ -171,7 +181,17 @@ class SFinder:
             else:
                 raise RuntimeError("Couldn't find percentage in sfinder output.\n\n" + output)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
+            pieces_error = re.search(r"Should specify equal to or more than (\d+) pieces: CurrentPieces=(\d+)",
+                                     e.output)
+            if pieces_error:
+                needed_pieces = int(pieces_error.group(1))
+                actual_pieces = int(pieces_error.group(2))
+                extra_pieces = needed_pieces - actual_pieces
+                new_pieces_str = f"{pieces},*p{extra_pieces}"
+                print(f"Not enough pieces to PC {fumen}, trying with {new_pieces_str}...")
+                return self.percent(fumen=fumen, pieces=new_pieces_str, height=height)
+            else:
+                raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
 
     def fig_png(self, fumen, height):
         """Generate an image for a fumen using 'util fig' and return base64 encode data_url."""
