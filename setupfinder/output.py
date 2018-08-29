@@ -76,7 +76,7 @@ def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
 
 def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cache, imgs=[]):
     #not the penultimate bag, need to go deeper
-    if len(setup.continuations[0].continuations) > 0:
+    if setup.continuations and len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
         new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
@@ -87,19 +87,24 @@ def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cac
         sf = SFinder(setup_cache=cache)
         h2(title)
         with div():
-            best_continuation = setup.continuations[0].solution
+            best_continuation = setup.continuations[0].solution if setup.continuations else setup.solution
             best_pc = sf.path(
                 fumen=best_continuation.to_fumen(), pieces=best_continuation.get_remaining_pieces(),
                 height=pc_height)[0]  #todo: hack! change this when i fix cache
 
             for url in imgs:
                 img(src=url)
-            img(src=fumen_to_image(setup.solution.fumen, img_height, skin))
+            # if only first bag, best_continuation is just the setup, so don't print it twice
+            if setup.continuations:
+                img(src=fumen_to_image(setup.solution.fumen, img_height, skin))
             img(src=fumen_to_image(best_continuation.fumen, img_height, skin))
             img(src=fumen_to_image(best_pc.fumen, img_height, skin))
         with p():
             text("Best continuation: ")
-            b("%.2f%%" % setup.continuations[0].PC_rate)
+            if setup.continuations:
+                b("%.2f%%" % setup.continuations[0].PC_rate)
+            else:
+                b("%.2f%%" % setup.PC_rate)
             text(" PC success rate – ")
             b(a("%d continuations" % len(setup.continuations), href=fumen_url + setup.to_fumen()))
             text("with >%.2f%% PC success rate" % pc_cutoff)
