@@ -29,6 +29,13 @@ def is_TSS(solution, x, y, vertical_T=False, mirror=False):
         return False
 
 
+def test_TSS(solution, x, y, vertical_T=False, mirror=False):
+    """Test if solution is a valid TSS, but solution field is not mutated."""
+    sol = deepcopy(solution)
+    sol.field.add_T(x, y, vertical=vertical_T, mirror=mirror)
+    return sol.field.clearedRows == 1
+
+
 def is_TSD(solution, x, y):
     if len(solution.sequence) == 6:
         solution.field.add_T(x, y, False)  #flat T
@@ -39,7 +46,7 @@ def is_TSD(solution, x, y):
 
 
 def test_TSD(solution, x, y):
-    """Test if solution _would_ be a TSD, don't actually add the T piece like isTSD."""
+    """Test if solution is a valid TSD, but solution field is not mutated."""
     sol = deepcopy(solution)
     sol.field.add_T(x, y, False)  #flat T
     return sol.field.clearedRows == 2
@@ -98,6 +105,15 @@ def get_TSS_continuations(field, rows, cols, bag_filter, TSS1, TSS2, find_mirror
                     if TSS2:
                         valid_sols.extend(
                             filter(lambda sol: is_TSS(sol, col, row, vertical_T=False, mirror=mirror), tss2_sols))
+                elif bag_filter == "testTSS":
+                    if TSS1:
+                        valid_sols.extend(
+                            filter(lambda sol: test_TSS(sol, col, row, vertical_T=False, mirror=mirror), tss1_sols))
+                        valid_sols.extend(
+                            filter(lambda sol: test_TSS(sol, col, row, vertical_T=True, mirror=mirror), tss1_sols_copy))
+                    if TSS2:
+                        valid_sols.extend(
+                            filter(lambda sol: test_TSS(sol, col, row, vertical_T=False, mirror=mirror), tss2_sols))
                 else:
                     if TSS1:
                         valid_sols.extend(tss1_sols)
