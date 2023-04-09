@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "setup-finder"
+version = "0.1.0"
+description = "Tools for finding Tetris setups."
+readme = "README.md"
+authors = [
+    {name = "moozilla", email = "moozilla@protonmail.com"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Topic :: Games/Entertainment :: Puzzle Games",
+]
+requires-python = ">=3.6"
+dependencies = [
+    "colorama==0.4.6",
+    "dominate==2.7.0",
+    "imageio==2.27.0",
+    "lxml==4.9.2",
+    "numpy==1.24.2",
+    "tqdm==4.65.0",
+]
+
+[project.urls]
+homepage = "https://github.com/moozilla/setup-finder"
+
+[project.scripts]
+setup-finder = "setupfinder.find:main"
+
+[tool.setuptools]
+packages = ["setupfinder"]
