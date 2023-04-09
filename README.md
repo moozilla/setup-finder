@@ -85,4 +85,4 @@ This should be in PNG format and the block colors should follow the order shown 
 Feel free to contact me with any questions, ideas, or suggestions:
 
 Twitter: [@spikeman](https://twitter.com/spikeman)  
-Discord: pwn#4081 (find me on the [Hard Drop discord server](https://discord.gg/harddrop))
+Discord: pwn#4801 (find me on the [Hard Drop discord server](https://discord.gg/harddrop))
