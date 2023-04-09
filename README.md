@@ -78,11 +78,20 @@ With the `--skin` flag you can specify a custom skin used for generating the ima
 
 This should be in PNG format and the block colors should follow the order shown in the example. Any size block should work as long as blocks are square (block size is determined by the height of the image).
 
+## Running on Mac/Linux
+
+1. Clone the source code with `git clone https://github.com/moozilla/setup-finder.git`
+2. Install the python package by running `pip install .` from inside the directory you cloned the project into.
+3. Download the release and copy over `input.txt`, `default.png`, `cache.bin` and the `solution-finder-0.511` directory into the directory you installed the package.
+4. Run the tool from the terminal using `setup-finder`.
+
+Note: Because this program using solution-finder, you will also need a valid Java installation.
+
 ## License and Contact Info
 
 `setup-finder` is copyright 2018 moozilla. Code licensed under the [MIT License](https://github.com/moozilla/setup-finder/blob/master/LICENSE). Licenses of all dependencies included and linked against can be found in LICENSES.md.
 
 Feel free to contact me with any questions, ideas, or suggestions:
 
-Twitter: [@spikeman](https://twitter.com/spikeman)  
+Twitter: [@spikeman](https://twitter.com/spikeman)
 Discord: pwn#4801 (find me on the [Hard Drop discord server](https://discord.gg/harddrop))
