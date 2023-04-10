@@ -4,14 +4,13 @@ import os, re, subprocess
 from lxml import html, etree
 from setupfinder.finder.tet import TetSolution, TetField
 from setupfinder.finder import cache
-from setupfinder.finder.fumen import decode as fumen_decode
+from setupfinder.finder.fumen import decode as fumen_decode, decode_comment
 import base64  #for image generation
 from copy import deepcopy
 from pathlib import Path
 
 #solution finder version, used for finding default sfinder folder
-SFINDER_VER = "solution-finder-0.511"
-
+SFINDER_VER = "solution-finder-1.42"
 
 def memoize(func):
     def wrapper(self, *args, **kwargs):
@@ -52,7 +51,7 @@ class SFinder:
     @memoize
     def setup(self, fumen=None, pieces=None, input_diagram=None, print_results=False):
         """Run sfinder setup command, return setups.
-        
+
         Returns a list of TetSolutions.
         """
         # old cache
@@ -63,6 +62,9 @@ class SFinder:
         args = ["java", "-Xmx1024m", "-jar", "sfinder.jar", "setup"]
         if fumen:
             args.extend(["-t", fumen])
+            # latest sfinder versions don't support args inside a fumen comment
+            fumen_args = decode_comment(fumen).split(" ")
+            args.extend(fumen_args)
         if pieces:
             args.extend(["-p", pieces])
         if input_diagram:
@@ -70,7 +72,7 @@ class SFinder:
         try:
             output = subprocess.check_output(
                 args, cwd=self.working_dir, stderr=subprocess.STDOUT, universal_newlines=True)
-            match = re.search(r"Found solution = (\d+)\D+time = (\d+)", output)
+            match = re.search(r"Found solutions = (\d+).*?avg\.time = (\d+)", output, re.DOTALL)
             if match:
                 if print_results:
                     print("Setup found %s solutions, took %s ms\n" % match.group(1, 2))
@@ -102,12 +104,14 @@ class SFinder:
                 #use_cache[fumen] = None
                 return None
             else:
-                raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
+                sfinder_error = re.search(r"Message: (.+)\n", e.output).group(1)
+                extra = f" Fumen: {fumen}" if fumen else ""
+                raise RuntimeError(f"Sfinder Error: {sfinder_error}" + extra)
 
     @memoize
     def path(self, fumen=None, pieces=None, height=None):
         """Run sfinder path command, returns a list of solution fumens.
-        
+
         Note: Doesn't parse sequences possible for each fumen, could add this later. (Might want to change to parsing csv for that?)"""
         if fumen is not None and pieces is not None:
             key = "p" + pieces + fumen
@@ -143,13 +147,13 @@ class SFinder:
                 print("Error: Path didn't find any solutions\n\n" + output)
                 return None
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
+            sfinder_error = re.search(r"Message: (.+)\n", e.output).group(1)
+            extra = f" Fumen: {fumen}" if fumen else ""
+            raise RuntimeError(f"Sfinder Error: {sfinder_error}" + extra)
 
     @memoize
     def percent(self, fumen=None, pieces=None, height=None):
-        """Run sfinder percent command, return overall success rate (just the number)"""
         if fumen is not None and pieces is not None:
-            # "r" for rate, I'll use "p" if I implement path later on
             key = "r" + pieces + fumen
             cached_result = cache.get_PC_rate(key)
             if cached_result is not None:
@@ -171,7 +175,16 @@ class SFinder:
             else:
                 raise RuntimeError("Couldn't find percentage in sfinder output.\n\n" + output)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError("Sfinder Error: %s" % re.search(r"Message: (.+)\n", e.output).group(1))
+            sfinder_error = re.search(r"Message: (.+)\n", e.output).group(1)
+            pieces_match = re.search(r"Should specify equal to or more than (\d+) pieces: CurrentPieces=(\d+)", sfinder_error)
+            if pieces_match:
+                expected, current = int(pieces_match.group(1)), int(pieces_match.group(2))
+                missing_pieces = expected - current
+                new_pieces = f"{pieces},*p{missing_pieces}"
+                return self.percent(fumen=fumen, pieces=new_pieces, height=height)
+            else:
+                extra = f" Fumen: {fumen}" if fumen else ""
+                raise RuntimeError(f"Sfinder Error: {sfinder_error}" + extra)
 
     def fig_png(self, fumen, height):
         """Generate an image for a fumen using 'util fig' and return base64 encode data_url."""

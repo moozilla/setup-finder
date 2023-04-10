@@ -17,7 +17,7 @@ class TetField:
 
     def __init__(self, from_string=None, from_list=None):
         """Generates matrix from field diagram.
-        
+
         Note that in input, rows are NOT separated by newlines (html processing strips <br> elements).
         """
         self.clearedRows = 0  # keep track of cleared rows to figure out PC height
@@ -95,7 +95,7 @@ class TetField:
 
 class TetOverlay:
     """Overlay wrapper, for importing/generating overlays.
-    
+
     Overlays are basically what I am calling a setup diagram that is superimposed onto the current setup.
     Eventually, this class will have functions to generate overlays to find Tspins, etc., on top of an arbitrary field
     """
@@ -179,7 +179,7 @@ class TetSetup:
 
     def find_PCs(self, height, cutoff, use_cache):
         """Find PCs for all continuations, then figure out overall PC rate.
-        
+
         Returns true if overall PC rate is >= cutoff, for filtering.
         """
         if len(self.continuations) > 0:

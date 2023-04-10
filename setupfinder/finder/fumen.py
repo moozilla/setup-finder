@@ -7,7 +7,7 @@ I only need to parse the field and comments for commmunicating with solution-fin
 Might require parsing pieces as well.)
 """
 
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 FIELD_BLOCKS = 240  # number of blocks on field in fumen frame (24 rows of 10)
 ENC_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"  # used for pseudo-base64 decoding
@@ -87,7 +87,7 @@ def decode(fumen_str):
 
 def encode(frames):
     """Encode a fumen diagram.
-    
+
     Frames is a list of tuples of (field, comment), for no comment comment should be an empty string.
     Field is in list form, should be converted to fumen colors first.
     Pieces and extra data stuff isn't supported. Comments must be less than 4096 characters.
@@ -177,3 +177,7 @@ def encode(frames):
         if i % 47 == 41:
             encode_str += "?"
     return encode_str
+
+def decode_comment(fumen_str):
+    _, comment = decode(fumen_str)
+    return unquote(comment)
