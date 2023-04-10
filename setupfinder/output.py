@@ -47,7 +47,7 @@ def output_results(output_file, setups, title, img_height, conts_to_display, ski
 def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
     """Recursively generate output for setup+continuations."""
     #not the penultimate bag, need to go deeper
-    if len(setup.continuations[0].continuations) > 0:
+    if setup.continuations and len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
         new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
@@ -76,7 +76,7 @@ def generate_output(setup, title, img_height, conts_to_display, skin, imgs=[]):
 
 def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cache, imgs=[]):
     #not the penultimate bag, need to go deeper
-    if len(setup.continuations[0].continuations) > 0:
+    if setup.continuations and len(setup.continuations[0].continuations) > 0:
         #store images in list to print at the end
         new_imgs = imgs.copy()  #don't think this needs to be a deepcopy
         new_imgs.append(fumen_to_image(setup.solution.fumen, img_height, skin))
