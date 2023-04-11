@@ -11,7 +11,7 @@ from setupfinder.finder.sfinder import SFinder
 from setupfinder.img import get_blocks_from_skin, fumen_to_image
 
 working_dir = Path.cwd() / "output"
-fumen_url = "http://104.236.152.73/fumen/?"  #"http://fumen.zui.jp/?"
+fumen_url = "http://fumen.zui.jp/?"
 
 
 def output_results_pc(output_file, setups, title, pc_height, pc_cutoff, img_height, cache, skin_file):
@@ -86,20 +86,32 @@ def generate_output_pc(setup, title, pc_cutoff, pc_height, img_height, skin, cac
     else:
         sf = SFinder(setup_cache=cache)
         h2(title)
-        with div():
+        best_continuation = None
+        best_pc = None
+        if setup.continuations:
             best_continuation = setup.continuations[0].solution
             best_pc = sf.path(
                 fumen=best_continuation.to_fumen(), pieces=best_continuation.get_remaining_pieces(),
                 height=pc_height)[0]  #todo: hack! change this when i fix cache
-
+        else:
+            best_pc = sf.path(
+                fumen=setup.solution.to_fumen(), pieces=setup.solution.get_remaining_pieces(),
+                height=pc_height)[0]
+        with div():
             for url in imgs:
                 img(src=url)
             img(src=fumen_to_image(setup.solution.fumen, img_height, skin))
-            img(src=fumen_to_image(best_continuation.fumen, img_height, skin))
-            img(src=fumen_to_image(best_pc.fumen, img_height, skin))
+            if best_continuation:
+                img(src=fumen_to_image(best_continuation.fumen, img_height, skin))
+            if best_pc:
+                img(src=fumen_to_image(best_pc.fumen, img_height, skin))
         with p():
-            text("Best continuation: ")
-            b("%.2f%%" % setup.continuations[0].PC_rate)
-            text(" PC success rate – ")
-            b(a("%d continuations" % len(setup.continuations), href=fumen_url + setup.to_fumen()))
-            text("with >%.2f%% PC success rate" % pc_cutoff)
+            if best_continuation:
+                text("Best continuation: ")
+                b("%.2f%%" % setup.continuations[0].PC_rate)
+                text(" PC success rate – ")
+                b(a("%d continuations" % len(setup.continuations), href=fumen_url + setup.to_fumen()))
+                text("with >%.2f%% PC success rate" % pc_cutoff)
+            else:
+                b("%.2f%%" % setup.PC_rate)
+                text(" PC success rate")

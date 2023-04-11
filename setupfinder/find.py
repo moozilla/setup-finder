@@ -17,7 +17,7 @@ from setupfinder.finder import finder
 
 def parse_input_line(bag):
     """Parse a line from input.txt into a dict with default values if args are missing.
-    
+
     Arguments are separated by spaces, argument name and value separated by dash.
     Example line: TSD row-1,2 col-any filter-isTSD-any
     """
@@ -94,6 +94,7 @@ def setups_from_input(input_file, cache_file, pack_cache, skin_file):
                     print(f"Bag {i}: Finding PCs...")
                     title += " -> PC"
                     f.find_PC_finishes(args)
+                    print(f"Bag {i}: Found {len(f.setups)} valid PCs")
                     break
                 print(f"Bag {i}: Finding {bag_title} continuations...")
                 title += " -> " + bag_title
